@@ -1,6 +1,6 @@
 {
   "name": "@spritz-finance/contract-core",
-  "description": "Hardhat-based template for developing Solidity smart contracts",
+  "description": "Core contracts for Spritz payment modules",
   "version": "0.0.1",
   "author": {
     "name": "Spritz Finance",
@@ -11,7 +11,16 @@
     "commit": "git-cz",
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",
-    "deploy": "hardhat deploy:Greeter",
+    "deploy": "hardhat deploy:SpritzPay",
+    "deploy:mumbai": "hardhat deploy:SpritzPay --network polygon-mumbai",
+    "deploy:polygon": "hardhat deploy:SpritzPay --network polygon-mainnet",
+    "deploy-staging:polygon": "hardhat deploy-staging:SpritzPay --network polygon-mainnet",
+    "upgrade:polygon": "hardhat upgrade:SpritzPay --network polygon-mainnet",
+    "rollback:polygon": "hardhat rollback:SpritzPay --network polygon-mainnet",
+    "deploy:optimism": "hardhat deploy:SpritzPay --network optimism",
+    "deploy-staging:optimism": "hardhat deploy-staging:SpritzPay --network optimism",
+    "deploy-staging:bsc": "hardhat deploy-staging:SpritzPay --network bsc",
+    "deploy:ropsten": "hardhat deploy:SpritzPay --network ropsten",
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yml --ignore-path ./.eslintignore --ext .js,.ts .",
@@ -21,7 +30,9 @@
     "prettier": "prettier --config ./.prettierrc.yml --write \"**/*.{js,json,md,sol,ts,yml}\"",
     "prettier:check": "prettier --check --config ./.prettierrc.yml \"**/*.{js,json,md,sol,ts,yml}\"",
     "test": "hardhat test",
-    "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain"
+    "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
+    "slither": "slither --solc-remaps @openzeppelin/=$(pwd)/node_modules/@openzeppelin/",
+    "myth": "myth analyze --solc-json remapping.json"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
