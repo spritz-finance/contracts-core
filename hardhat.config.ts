@@ -53,7 +53,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
       jsonRpcUrl = `https://opt-mainnet.g.alchemy.com/v2/${alchemyOptimismKey}`;
       break;
     case "rinkeby":
-      jsonRpcUrl = "https://eth-rinkeby.alchemyapi.io/v2/RYIDDOx8uE5xU8mdjHZSKPpVkY-SwloE";
+      jsonRpcUrl = "https://eth-rinkeby.alchemyapi.io/v2/";
       break;
     case "polygon-mumbai":
       jsonRpcUrl = `https://polygon-mumbai.g.alchemy.com/v2/${alchemyPolygonMumbaiKey}`;
