@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./lib/SpritzPayStorage.sol";
@@ -16,14 +15,7 @@ error FailedTokenTransfer(address tokenAddress, address to, uint256 amount);
  * @title SpritzPayV1
  * @notice Main entry point for Spritz payments
  */
-contract SpritzPayV1 is
-    SpritzPayStorage,
-    Initializable,
-    OwnableUpgradeable,
-    PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    WETHUpgradeable
-{
+contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, PausableUpgradeable, WETHUpgradeable {
     using SafeERC20 for IERC20;
 
     /**
@@ -43,7 +35,6 @@ contract SpritzPayV1 is
         _setPaymentRecipient(_paymentRecipient);
         __Ownable_init();
         __Pausable_init();
-        __ReentrancyGuard_init();
         __WETH_init(_wethAddress);
     }
 
