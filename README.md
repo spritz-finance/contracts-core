@@ -10,7 +10,56 @@
 Click the [`Use this template`](https://github.com/paulrberg/hardhat-template/generate) button at the top of the page to
 create a new repository with this repo as the initial state.
 
+## Security Toolbox
+
+Spritz Finance contracts make use of the [`trailofbits/eth-security-toolbox`](https://github.com/trailofbits/eth-security-toolbox) to analyze it's contracts with the most popular eth security tools.
+
+To download the toolbox, run `docker pull trailofbits/eth-security-toolbox`
+The toolbox isstance can then be launched by running the command `yarn toolbox` or `docker run -it --rm -v $PWD:/src trailofbits/eth-security-toolbox` from the PWD.
+
+### Slither
+
+Open the docker shell:
+
+```
+yarn toolbox
+```
+
+Then, run:
+
+```
+slither /src/contracts/ --solc-remaps @openzeppelin=/src/node_modules/@openzeppelin --exclude naming-convention,external-function,low-level-calls --filter-paths @openzeppelin
+```
+
+To exit:
+
+```
+exit
+```
+
+### Echidna
+
+Open the docker shell:
+
+```
+yarn toolbox
+```
+
+Then, run this:
+
+```
+echidna-test /src/test/fuzzing/SpritzPayFuzzTest.sol --contract SpritzPayFuzzTest --config /src/test/fuzzing/config.yaml
+```
+
+To exit:
+
+```
+exit
+```
+
 ## Usage
+
+### Compile
 
 ### Pre Requisites
 
