@@ -5,13 +5,23 @@ import type { TaskArguments } from "hardhat/types";
 
 import { SpritzPayV1__factory } from "../../src/types";
 import { verifyProxyContract } from "../utils/verify";
-
-const ROUTER_ADDRESS = "0xe592427a0aece92de3edee1f18e0157c05861564";
-const WRAPPED_NATIVE_ADDRESS = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
+import {
+  SPRITZ_TREASURY_WALLET,
+  TEAM_WALLET_AVALANCHE,
+  TEAM_WALLET_BSC,
+  TEAM_WALLET_OPTIMISM,
+  TEAM_WALLET_POLYGON,
+  ZEROEX_ROUTER_AVALANCHE,
+  ZEROEX_ROUTER_BSC,
+  ZEROEX_ROUTER_OPTIMISM,
+  ZEROEX_ROUTER_POLYGON,
+} from "./constants";
 
 const chainArgs: Record<string, any> = {
-  "polygon-mainnet": ["0xe592427a0aece92de3edee1f18e0157c05861564", "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"],
-  optimism: ["0xe592427a0aece92de3edee1f18e0157c05861564", "0x4200000000000000000000000000000000000006"],
+  "polygon-mainnet": [SPRITZ_TREASURY_WALLET, ZEROEX_ROUTER_POLYGON],
+  optimism: [SPRITZ_TREASURY_WALLET, ZEROEX_ROUTER_OPTIMISM],
+  bsc: [SPRITZ_TREASURY_WALLET, ZEROEX_ROUTER_BSC],
+  avalanche: [SPRITZ_TREASURY_WALLET, ZEROEX_ROUTER_AVALANCHE],
 };
 
 task("deploy:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {

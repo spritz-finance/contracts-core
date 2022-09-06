@@ -4,10 +4,8 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./lib/SpritzPayStorage.sol";
-import "./lib/WETHUpgradeable.sol";
 import "./lib/SafeERC20.sol";
 
 error FailedTokenTransfer(address tokenAddress, address to, uint256 amount);
@@ -23,14 +21,7 @@ error FailedRefund(address tokenAddress, uint256 amount);
  * @title SpritzPayV1
  * @notice Main entry point for Spritz payments
  */
-contract SpritzPayV1 is
-    SpritzPayStorage,
-    Initializable,
-    OwnableUpgradeable,
-    PausableUpgradeable,
-    WETHUpgradeable,
-    ReentrancyGuard
-{
+contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
 
     /**
@@ -46,16 +37,11 @@ contract SpritzPayV1 is
         bytes32 paymentReference
     );
 
-    function initialize(
-        address _paymentRecipient,
-        address _wethAddress,
-        address _swapTarget
-    ) public virtual initializer {
+    function initialize(address _paymentRecipient, address _swapTarget) public virtual initializer {
         _setPaymentRecipient(_paymentRecipient);
         _setSwapTarget(_swapTarget);
         __Ownable_init();
         __Pausable_init();
-        __WETH_init(_wethAddress);
     }
 
     /**
@@ -104,7 +90,7 @@ contract SpritzPayV1 is
         address allowanceTarget,
         bytes calldata swapCallData,
         bytes32 paymentReference
-    ) external payable whenNotPaused nonReentrant {
+    ) external payable whenNotPaused {
         logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
 
         bool isNativeSwap = allowanceTarget == address(0);
@@ -147,7 +133,7 @@ contract SpritzPayV1 is
 
         //Transfer payment token to declared destination
         IERC20 paymentToken = IERC20(paymentTokenAddress);
-        bool transferOutSuccess = paymentToken.transfer(paymentRecipient, paymentTokenAmount);
+        bool transferOutSuccess = paymentToken.safeTransfer(paymentRecipient, paymentTokenAmount);
         if (!transferOutSuccess) {
             revert FailedTokenTransfer({
                 tokenAddress: paymentTokenAddress,
@@ -187,15 +173,23 @@ contract SpritzPayV1 is
     }
 
     /**
-     * @notice Authorizes the swap router to spend a new payment currency (ERC20).
-     * @param _erc20Address Address of an ERC20 used for payment
+     * @notice Authorizes the swap router to spend a token
+     * @param token Address of an ERC20 token
+     * @param allowanceTarget Target contract which can spend this contract's token balance
      */
-    function approveTokenSpend(address _erc20Address, address allowanceTarget) private returns (bool approveSuccess) {
-        IERC20 erc20 = IERC20(_erc20Address);
+    function approveTokenSpend(address token, address allowanceTarget) private returns (bool approveSuccess) {
+        IERC20 erc20 = IERC20(token);
         uint256 max = 2**256 - 1;
         return erc20.safeApprove(allowanceTarget, max);
     }
 
+    /**
+     * @notice Transfers token to
+     * @param token Address of an ERC20 used for payment
+     * @param from Address from which to withdraw
+     * @param to Address which receives token
+     * @param amount Amount to withdraw
+     */
     function safeTransferToken(
         address token,
         address from,
@@ -203,7 +197,7 @@ contract SpritzPayV1 is
         uint256 amount
     ) internal returns (bool transferSuccess) {
         IERC20 erc20 = IERC20(token);
-        transferSuccess = erc20.safeTransferFrom(from, to, amount);
+        return erc20.safeTransferFrom(from, to, amount);
     }
 
     function logPayment(
@@ -228,7 +222,7 @@ contract SpritzPayV1 is
     receive() external payable {}
 
     /*
-     * Admin functions to edit the admin, router address or weth address
+     * Admin functions
      */
 
     function pause() external onlyOwner {
@@ -241,10 +235,5 @@ contract SpritzPayV1 is
 
     function setPaymentRecipient(address newPaymentRecipient) external onlyOwner {
         _setPaymentRecipient(newPaymentRecipient);
-    }
-
-    function setWETHAddress(address newWETHAddress) external onlyOwner {
-        if (newWETHAddress == address(0)) revert SetZeroAddress();
-        _setWETHAddress(newWETHAddress);
     }
 }
