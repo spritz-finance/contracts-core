@@ -105,6 +105,8 @@ contract SpritzPayV1 is
         bytes calldata swapCallData,
         bytes32 paymentReference
     ) external payable whenNotPaused nonReentrant {
+        logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
+
         bool isNativeSwap = allowanceTarget == address(0);
         IERC20 sourceToken = IERC20(sourceTokenAddress);
 
@@ -167,40 +169,31 @@ contract SpritzPayV1 is
         }
 
         //Refund any remaining source token balance to user
-        uint256 remainingBalance = 0;
+        //        uint256 remainingBalance = 0;
 
         //Refund remaining source token to caller
         if (!isNativeSwap && sourceToken.balanceOf(address(this)) > 0) {
-            remainingBalance = sourceToken.balanceOf(address(this));
-            bool refundSourceTokenSuccess = sourceToken.transfer(msg.sender, remainingBalance);
+            uint256 remainingBalance = sourceToken.balanceOf(address(this));
+            bool refundSourceTokenSuccess = sourceToken.transfer(_msgSender(), remainingBalance);
             if (!refundSourceTokenSuccess) {
                 revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
             }
         }
 
         if (address(this).balance > 0) {
-            if (isNativeSwap) {
-                remainingBalance = address(this).balance;
-            }
-            (bool refundSuccess, ) = msg.sender.call{ value: address(this).balance }("");
-            if (!refundSuccess) {
-                revert FailedRefund({ tokenAddress: address(0), amount: remainingBalance });
-            }
+            //slither-disable-next-line arbitrary-send
+            payable(_msgSender()).transfer(address(this).balance);
         }
-
-        uint256 sourceTokenSpent = sourceTokenAmount - remainingBalance;
-
-        logPayment(sourceTokenAddress, sourceTokenSpent, paymentTokenAddress, paymentTokenAmount, paymentReference);
     }
 
     /**
      * @notice Authorizes the swap router to spend a new payment currency (ERC20).
      * @param _erc20Address Address of an ERC20 used for payment
      */
-    function approveTokenSpend(address _erc20Address, address allowanceTarget) private {
+    function approveTokenSpend(address _erc20Address, address allowanceTarget) private returns (bool approveSuccess) {
         IERC20 erc20 = IERC20(_erc20Address);
         uint256 max = 2**256 - 1;
-        erc20.safeApprove(allowanceTarget, max);
+        return erc20.safeApprove(allowanceTarget, max);
     }
 
     function safeTransferToken(
