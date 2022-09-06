@@ -85,7 +85,9 @@ describe("SpritzPay", function () {
         "Pausable: paused",
       );
     });
+  });
 
+  describe("pausability", () => {
     it("only allows the owner to pause the contract", async () => {
       await expect(spritzPay.connect(usdcWhale).pause()).to.be.revertedWith("Ownable: caller is not the owner");
     });

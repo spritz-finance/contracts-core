@@ -101,6 +101,9 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic,
       },
+      // accounts: [{
+      //   privateKey
+      // }],
       chainId: chainIds.hardhat,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
