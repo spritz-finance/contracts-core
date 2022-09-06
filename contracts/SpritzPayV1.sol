@@ -231,6 +231,9 @@ contract SpritzPayV1 is
         );
     }
 
+    // Payable fallback to handle receiving protocol fee refunds from 0x.
+    receive() external payable {}
+
     /*
      * Admin functions to edit the admin, router address or weth address
      */
