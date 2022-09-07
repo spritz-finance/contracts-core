@@ -49,7 +49,7 @@ describe("SpritzPay", function () {
     await spritzPay.deployed();
   });
 
-  describe.only("payWithSwap", () => {
+  describe("payWithSwap", () => {
     const sourceTokenAddress = WBTC_POLYGON_ADDRESS;
     const sourceTokenAddress2 = ZERO_ADDRESS;
     const paymentTokenAddress = USDC_POLYGON_ADDRESS;
