@@ -99,6 +99,7 @@ contract SpritzPayV1 is
         bytes32 paymentReference
     ) external payable whenNotPaused nonReentrant {
         bool isNativeSwap = sourceTokenAddress == address(0);
+        uint256 startingBalance = address(this).balance;
         IERC20 sourceToken = IERC20(sourceTokenAddress);
         IERC20 paymentToken = IERC20(paymentTokenAddress);
 
@@ -106,7 +107,7 @@ contract SpritzPayV1 is
             "start balances: source-%s, payment-%s, native-%s",
             isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
             paymentToken.balanceOf(address(this)),
-            address(this).balance
+            startingBalance
         );
 
         // If swap involves non-native token
@@ -200,9 +201,9 @@ contract SpritzPayV1 is
             }
         }
 
-        if (address(this).balance > 0) {
+        if (address(this).balance > startingBalance) {
             //slither-disable-next-line arbitrary-send
-            payable(_msgSender()).transfer(address(this).balance);
+            payable(_msgSender()).transfer(startingBalance - address(this).balance);
         }
 
         console.log(
