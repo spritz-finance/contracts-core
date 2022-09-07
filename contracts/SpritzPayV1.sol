@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./lib/SpritzPayStorage.sol";
 import "./lib/SafeERC20.sol";
+import "hardhat/console.sol";
+
 
 error FailedTokenTransfer(address tokenAddress, address to, uint256 amount);
 error FailedSwap(
@@ -78,7 +80,6 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
      * @param sourceTokenAmount Amount of the token being sold for payment
      * @param paymentTokenAddress Address of the target payment token
      * @param paymentTokenAmount Amount of the target payment token
-     * @param allowanceTarget The `allowanceTarget` field from the 0x API response.
      * @param swapCallData The `data` field from the 0x API response.
      * @param paymentReference Reference of the payment related
      */
@@ -87,21 +88,20 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
         uint256 sourceTokenAmount,
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
-        address allowanceTarget,
         bytes calldata swapCallData,
         bytes32 paymentReference
     ) external payable whenNotPaused {
+
         logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
 
-        bool isNativeSwap = allowanceTarget == address(0);
+        bool isNativeSwap = sourceTokenAddress == address(0);
         IERC20 sourceToken = IERC20(sourceTokenAddress);
+        IERC20 paymentToken = IERC20(paymentTokenAddress);
 
         // If swap involves non-native token
         if (!isNativeSwap) {
-            //Ensure our contract gives sufficient allowance to swap target
-            if (sourceToken.allowance(address(this), allowanceTarget) < sourceTokenAmount) {
-                approveTokenSpend(sourceTokenAddress, allowanceTarget);
-            }
+
+            sourceToken.approve(swapTarget, 2**256 - 1);
 
             //Transfer from user to our contract
             bool transferInSuccess = safeTransferToken(
@@ -118,21 +118,35 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
                     amount: sourceTokenAmount
                 });
             }
+
         }
+
+        console.log(
+            "before swap contract balances: source-%s, payment-%s",
+            sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this))
+        );
 
         //Call 0x swap
         (bool swapSuccess, ) = swapTarget.call{ value: msg.value }(swapCallData);
-        if (!swapSuccess) {
-            revert FailedSwap({
-                sourceTokenAddress: sourceTokenAddress,
-                sourceTokenAmount: sourceTokenAmount,
-                paymentTokenAddress: paymentTokenAddress,
-                paymentTokenAmount: paymentTokenAmount
-            });
-        }
+        require(swapSuccess, 'SWAP_CALL_FAILED');
+//
+//    if (!swapSuccess) {
+//            revert FailedSwap({
+//                sourceTokenAddress: sourceTokenAddress,
+//                sourceTokenAmount: sourceTokenAmount,
+//                paymentTokenAddress: paymentTokenAddress,
+//                paymentTokenAmount: paymentTokenAmount
+//            });
+//        }
 
-        //Transfer payment token to declared destination
-        IERC20 paymentToken = IERC20(paymentTokenAddress);
+        console.log(
+            "after swap contract balances: source-%s, payment-%s",
+            sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this))
+        );
+
+//        //Transfer payment token to declared destination
         bool transferOutSuccess = paymentToken.safeTransfer(paymentRecipient, paymentTokenAmount);
         if (!transferOutSuccess) {
             revert FailedTokenTransfer({
@@ -141,6 +155,12 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
                 amount: paymentTokenAmount
             });
         }
+
+        console.log(
+            "after transfer out: source-%s, payment-%s",
+            sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this))
+        );
 
         //Refund any remaining payment token balance to user
         {
@@ -170,6 +190,12 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
             //slither-disable-next-line arbitrary-send
             payable(_msgSender()).transfer(address(this).balance);
         }
+
+        console.log(
+            "after refunds: source-%s, payment-%s",
+            sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this))
+        );
     }
 
     /**

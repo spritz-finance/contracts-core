@@ -58,6 +58,7 @@
     "@types/node": "^18.6.5",
     "@typescript-eslint/eslint-plugin": "^5.33.0",
     "@typescript-eslint/parser": "^5.33.0",
+    "axios": "0.27.0",
     "chai": "^4.3.6",
     "commitizen": "^4.2.5",
     "cross-env": "^7.0.3",

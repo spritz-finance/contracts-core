@@ -96,7 +96,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: FORKING_URL,
-        blockNumber: 30965500,
+        // blockNumber: 30965500,
+        blockNumber: 32802513,
       },
       accounts: {
         mnemonic,
