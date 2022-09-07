@@ -3,12 +3,12 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./lib/SpritzPayStorage.sol";
 import "./lib/SafeERC20.sol";
 import "hardhat/console.sol";
-
 
 error FailedTokenTransfer(address tokenAddress, address to, uint256 amount);
 error FailedSwap(
@@ -23,7 +23,13 @@ error FailedRefund(address tokenAddress, uint256 amount);
  * @title SpritzPayV1
  * @notice Main entry point for Spritz payments
  */
-contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, PausableUpgradeable {
+contract SpritzPayV1 is
+    SpritzPayStorage,
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20 for IERC20;
 
     /**
@@ -44,6 +50,7 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
         _setSwapTarget(_swapTarget);
         __Ownable_init();
         __Pausable_init();
+        __ReentrancyGuard_init();
     }
 
     /**
@@ -90,18 +97,25 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
         uint256 paymentTokenAmount,
         bytes calldata swapCallData,
         bytes32 paymentReference
-    ) external payable whenNotPaused {
-
-        logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
-
+    ) external payable whenNotPaused nonReentrant {
         bool isNativeSwap = sourceTokenAddress == address(0);
         IERC20 sourceToken = IERC20(sourceTokenAddress);
         IERC20 paymentToken = IERC20(paymentTokenAddress);
 
+        console.log(
+            "start balances: source-%s, payment-%s, native-%s",
+            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this)),
+            address(this).balance
+        );
+
         // If swap involves non-native token
         if (!isNativeSwap) {
-
-            sourceToken.approve(swapTarget, 2**256 - 1);
+            //Ensure our contract gives sufficient allowance to swap target
+            if (sourceToken.allowance(address(this), swapTarget) < sourceTokenAmount) {
+                bool approveSuccess = approveTokenSpend(sourceTokenAddress, swapTarget);
+                require(approveSuccess, "Could not approve swapTarget");
+            }
 
             //Transfer from user to our contract
             bool transferInSuccess = safeTransferToken(
@@ -118,35 +132,34 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
                     amount: sourceTokenAmount
                 });
             }
-
         }
 
         console.log(
-            "before swap contract balances: source-%s, payment-%s",
-            sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this))
+            "before swap contract balances: source-%s, payment-%s, native-%s",
+            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this)),
+            address(this).balance
         );
 
         //Call 0x swap
         (bool swapSuccess, ) = swapTarget.call{ value: msg.value }(swapCallData);
-        require(swapSuccess, 'SWAP_CALL_FAILED');
-//
-//    if (!swapSuccess) {
-//            revert FailedSwap({
-//                sourceTokenAddress: sourceTokenAddress,
-//                sourceTokenAmount: sourceTokenAmount,
-//                paymentTokenAddress: paymentTokenAddress,
-//                paymentTokenAmount: paymentTokenAmount
-//            });
-//        }
+        if (!swapSuccess) {
+            revert FailedSwap({
+                sourceTokenAddress: sourceTokenAddress,
+                sourceTokenAmount: sourceTokenAmount,
+                paymentTokenAddress: paymentTokenAddress,
+                paymentTokenAmount: paymentTokenAmount
+            });
+        }
 
         console.log(
-            "after swap contract balances: source-%s, payment-%s",
-            sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this))
+            "after swap contract balances: source-%s, payment-%s, native-%s",
+            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this)),
+            address(this).balance
         );
 
-//        //Transfer payment token to declared destination
+        //Transfer payment token to declared destination
         bool transferOutSuccess = paymentToken.safeTransfer(paymentRecipient, paymentTokenAmount);
         if (!transferOutSuccess) {
             revert FailedTokenTransfer({
@@ -157,9 +170,10 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
         }
 
         console.log(
-            "after transfer out: source-%s, payment-%s",
-            sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this))
+            "after transfer out balances: source-%s, payment-%s, native-%s",
+            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this)),
+            address(this).balance
         );
 
         //Refund any remaining payment token balance to user
@@ -192,10 +206,13 @@ contract SpritzPayV1 is SpritzPayStorage, Initializable, OwnableUpgradeable, Pau
         }
 
         console.log(
-            "after refunds: source-%s, payment-%s",
-            sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this))
+            "after refunds: source-%s, payment-%s, native-%s",
+            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
+            paymentToken.balanceOf(address(this)),
+            address(this).balance
         );
+
+        logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
     }
 
     /**
