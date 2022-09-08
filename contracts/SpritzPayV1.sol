@@ -92,7 +92,7 @@ contract SpritzPayV1 is
      * @param paymentTokenAmount Exact Amount of the target payment token
      * @param paymentReference Reference of the payment related
      */
-    function payWithUniswap(
+    function payWithSwap(
         address sourceTokenAddress,
         uint256 sourceTokenAmount,
         address paymentTokenAddress,
@@ -105,7 +105,8 @@ contract SpritzPayV1 is
         IERC20 paymentToken = IERC20(paymentTokenAddress);
         IUniswapV2Router02 router = IUniswapV2Router02(swapTarget);
 
-        // If swap involves non-native token
+        // If swap involves non-native token, transfer token in, and grant allowance to
+        // the swap router
         if (!isNativeSwap) {
             //Ensure our contract gives sufficient allowance to swap target
             if (sourceToken.allowance(address(this), swapTarget) < sourceTokenAmount) {
@@ -136,6 +137,7 @@ contract SpritzPayV1 is
 
         uint256[] memory amounts;
 
+        //Execute the swap
         if (!isNativeSwap) {
             amounts = router.swapTokensForExactTokens(
                 paymentTokenAmount,
@@ -162,6 +164,8 @@ contract SpritzPayV1 is
             paymentTokenAmount,
             paymentReference
         );
+
+        //Refund remaining balance left after the swap to the user
 
         uint256 remainingBalance = sourceTokenAmount - sourceTokenSpentAmount;
         if (remainingBalance > 0) {
@@ -226,6 +230,10 @@ contract SpritzPayV1 is
     /*
      * Admin functions
      */
+
+    receive() external payable {}
+
+    fallback() external payable {}
 
     function pause() external onlyOwner {
         _pause();

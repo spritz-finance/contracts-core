@@ -1,34 +1,20 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
-import { Percent } from "quickswap-sdk";
 
-import { IUniswapV2Router02, SpritzPayV1 } from "../../src/types";
+import { SpritzPayV1 } from "../../src/types";
 import {
+  QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   USDC_POLYGON_ADDRESS,
   USDC_WHALE_ADDRESS,
   WBTC_HOLDER_ADDRESS,
   WBTC_POLYGON_ADDRESS,
-  ZEROEX_ROUTER_POLYGON,
-  ZERO_ADDRESS,
 } from "../helpers/constants";
-import {
-  WBTC,
-  WETH,
-  getBestStablecoinTradeForToken,
-  getERC20Contracts,
-  getStablecoinPairsForToken,
-  getTrades,
-  getUniswapRouter,
-} from "../helpers/helpers";
-import { getPayWithSwapArgs } from "./helpers";
+import { WBTC, WETH, getBestStablecoinTradeForToken, getERC20Contracts } from "../helpers/helpers";
 
 const tokenAddress = USDC_POLYGON_ADDRESS;
 const reference = "0x00000000000000000000000000000000000000006304ca0d2f5acf6d69b3c58e";
 const PAYMENT_RECIPIENT_ADDRESS = "0x1000000000000000000000000000000000000000";
-
-const QUICKSWAP_ROUTER_POLYGON_ADDRESS = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff";
-const QUICKSWAP_FACTORY_POLYGON_ADDRESS = "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32";
 
 describe("SpritzPay", function () {
   this.timeout(10000000);
@@ -55,37 +41,12 @@ describe("SpritzPay", function () {
     const spritzPayFactory = await ethers.getContractFactory("SpritzPayV1");
     spritzPay = (await upgrades.deployProxy(spritzPayFactory, [
       PAYMENT_RECIPIENT_ADDRESS,
-      // ZEROEX_ROUTER_POLYGON,
       QUICKSWAP_ROUTER_POLYGON_ADDRESS,
     ])) as SpritzPayV1;
     await spritzPay.deployed();
   });
 
   describe("payWithUniswap", () => {
-    // const sourceTokenAddress = WBTC_POLYGON_ADDRESS;
-    const slippageTolerance = new Percent("50", "10000"); // 50 bips, or 0.50%
-
-    it.skip("should work with uniswap directly", async () => {
-      const router = (await getUniswapRouter(QUICKSWAP_ROUTER_POLYGON_ADDRESS)) as IUniswapV2Router02;
-      const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
-      await wbtcTokenContract.connect(defiUser).approve(router.address, 1000000000000000);
-
-      const allPairs = await getStablecoinPairsForToken(WBTC);
-      const trades = getTrades(allPairs, WBTC, 10);
-      for (const trade of trades) {
-        const amountInMax = trade.maximumAmountIn(slippageTolerance).raw.toString();
-        const amountOut = trade.outputAmount.raw.toString();
-        const path = trade.route.path.map(t => t.address);
-        const args = [amountInMax, amountOut, path, PAYMENT_RECIPIENT_ADDRESS, 1672650092];
-        console.log(args);
-
-        const result = await router
-          .connect(defiUser)
-          .swapTokensForExactTokens(amountInMax, amountOut, path, PAYMENT_RECIPIENT_ADDRESS, 1672650092);
-        console.log(result);
-      }
-    });
-
     it("should swap token for token", async () => {
       const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
       await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
@@ -94,20 +55,24 @@ describe("SpritzPay", function () {
 
       await spritzPay
         .connect(defiUser)
-        .payWithUniswap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference);
+        .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference);
     });
 
     it("should swap native for token", async () => {
-      const bestTrade = await getBestStablecoinTradeForToken(WETH, 10);
+      const bestTrade = await getBestStablecoinTradeForToken(WETH, 5);
+
+      console.log(bestTrade);
+
+      console.log("current balance", await defiUser.getBalance());
 
       await spritzPay
         .connect(defiUser)
-        .payWithUniswap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference, {
+        .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference, {
           value: bestTrade.amountInMax,
         });
     });
   });
-
+  /*
   describe.skip("payWithSwap", () => {
     const sourceTokenAddress = WBTC_POLYGON_ADDRESS;
     const sourceTokenAddress2 = ZERO_ADDRESS;
@@ -229,7 +194,7 @@ describe("SpritzPay", function () {
       });
     });
   });
-
+*/
   describe("payWithToken", () => {
     it("reverts if the user has not given the contract allowance", async () => {
       const paymentAmount = 100000;
