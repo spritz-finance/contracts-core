@@ -169,14 +169,12 @@ contract SpritzPayV1 is
 
         uint256 remainingBalance = sourceTokenAmount - sourceTokenSpentAmount;
         if (remainingBalance > 0) {
-            if (isNativeSwap) {
-                bool sent = payable(_msgSender()).send(remainingBalance);
-                require(sent, "Failed to send Ether");
-            } else {
-                bool refundSourceTokenSuccess = sourceToken.safeTransfer(_msgSender(), remainingBalance);
-                if (!refundSourceTokenSuccess) {
-                    revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
-                }
+            bool refundSuccess = isNativeSwap
+                ? payable(_msgSender()).send(remainingBalance)
+                : sourceToken.safeTransfer(_msgSender(), remainingBalance);
+
+            if (!refundSuccess) {
+                revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
             }
         }
     }
