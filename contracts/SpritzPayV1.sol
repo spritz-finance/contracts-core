@@ -102,7 +102,6 @@ contract SpritzPayV1 is
         bool isNativeSwap = sourceTokenAddress == 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
 
         IERC20 sourceToken = IERC20(sourceTokenAddress);
-        IERC20 paymentToken = IERC20(paymentTokenAddress);
         IUniswapV2Router02 router = IUniswapV2Router02(swapTarget);
 
         // If swap involves non-native token, transfer token in, and grant allowance to
@@ -156,6 +155,8 @@ contract SpritzPayV1 is
         }
 
         uint256 sourceTokenSpentAmount = amounts[0];
+
+        require(amounts[1] == paymentTokenAmount, "Swap did not yield declared payment amount");
 
         logPayment(
             sourceTokenAddress,
