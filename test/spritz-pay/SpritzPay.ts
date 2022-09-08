@@ -12,7 +12,15 @@ import {
   ZEROEX_ROUTER_POLYGON,
   ZERO_ADDRESS,
 } from "../helpers/constants";
-import { WBTC, getERC20Contracts, getStablecoinPairsForToken, getTrades, getUniswapRouter } from "../helpers/helpers";
+import {
+  WBTC,
+  WETH,
+  getBestStablecoinTradeForToken,
+  getERC20Contracts,
+  getStablecoinPairsForToken,
+  getTrades,
+  getUniswapRouter,
+} from "../helpers/helpers";
 import { getPayWithSwapArgs } from "./helpers";
 
 const tokenAddress = USDC_POLYGON_ADDRESS;
@@ -57,7 +65,7 @@ describe("SpritzPay", function () {
     // const sourceTokenAddress = WBTC_POLYGON_ADDRESS;
     const slippageTolerance = new Percent("50", "10000"); // 50 bips, or 0.50%
 
-    it("should work with uniswap directly", async () => {
+    it.skip("should work with uniswap directly", async () => {
       const router = (await getUniswapRouter(QUICKSWAP_ROUTER_POLYGON_ADDRESS)) as IUniswapV2Router02;
       const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
       await wbtcTokenContract.connect(defiUser).approve(router.address, 1000000000000000);
@@ -78,25 +86,25 @@ describe("SpritzPay", function () {
       }
     });
 
-    it.only("should work with spritzpay", async () => {
+    it("should swap token for token", async () => {
       const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
       await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
 
-      const allPairs = await getStablecoinPairsForToken(WBTC);
-      const trades = getTrades(allPairs, WBTC, 10);
-      for (const trade of trades) {
-        const amountInMax = trade.maximumAmountIn(slippageTolerance).raw.toString();
-        const amountOut = trade.outputAmount.raw.toString();
-        const path = trade.route.path.map(t => t.address);
-        const args = [amountInMax, amountOut, path, PAYMENT_RECIPIENT_ADDRESS, 1672650092];
-        console.log(args);
+      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
 
-        const result = await spritzPay
-          .connect(defiUser)
-          .payWithUniswap(path[0], amountInMax, path[1], amountOut, reference);
+      await spritzPay
+        .connect(defiUser)
+        .payWithUniswap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference);
+    });
 
-        console.log(result);
-      }
+    it("should swap native for token", async () => {
+      const bestTrade = await getBestStablecoinTradeForToken(WETH, 10);
+
+      await spritzPay
+        .connect(defiUser)
+        .payWithUniswap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference, {
+          value: bestTrade.amountInMax,
+        });
     });
   });
 

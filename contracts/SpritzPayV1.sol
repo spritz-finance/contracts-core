@@ -85,146 +85,11 @@ contract SpritzPayV1 is
     }
 
     /**
-     * @notice Pay by swapping token or with native currency, using 0x as dex aggregator
+     * @notice Pay by swapping token or with native currency, using uniswapv2 as swap provider.
      * @param sourceTokenAddress Address of the token being sold for payment
-     * @param sourceTokenAmount Amount of the token being sold for payment
+     * @param sourceTokenAmount Max Amount of the token being sold for payment
      * @param paymentTokenAddress Address of the target payment token
-     * @param paymentTokenAmount Amount of the target payment token
-     * @param swapCallData The `data` field from the 0x API response.
-     * @param paymentReference Reference of the payment related
-     */
-    function payWithSwap(
-        address sourceTokenAddress,
-        uint256 sourceTokenAmount,
-        address paymentTokenAddress,
-        uint256 paymentTokenAmount,
-        bytes calldata swapCallData,
-        bytes32 paymentReference
-    ) external payable whenNotPaused nonReentrant {
-        bool isNativeSwap = sourceTokenAddress == address(0);
-        uint256 startingBalance = address(this).balance;
-        IERC20 sourceToken = IERC20(sourceTokenAddress);
-        IERC20 paymentToken = IERC20(paymentTokenAddress);
-
-        console.log(
-            "start balances: source-%s, payment-%s, native-%s",
-            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this)),
-            startingBalance
-        );
-
-        // If swap involves non-native token
-        if (!isNativeSwap) {
-            //Ensure our contract gives sufficient allowance to swap target
-            if (sourceToken.allowance(address(this), swapTarget) < sourceTokenAmount) {
-                bool approveSuccess = approveTokenSpend(sourceTokenAddress, swapTarget);
-                require(approveSuccess, "Could not approve swapTarget");
-            }
-
-            //Transfer from user to our contract
-            bool transferInSuccess = safeTransferToken(
-                sourceTokenAddress,
-                _msgSender(),
-                address(this),
-                sourceTokenAmount
-            );
-
-            if (!transferInSuccess) {
-                revert FailedTokenTransfer({
-                    tokenAddress: sourceTokenAddress,
-                    to: address(this),
-                    amount: sourceTokenAmount
-                });
-            }
-        }
-
-        console.log(
-            "before swap contract balances: source-%s, payment-%s, native-%s",
-            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this)),
-            address(this).balance
-        );
-
-        //Call 0x swap
-        (bool swapSuccess, ) = swapTarget.call{ value: msg.value }(swapCallData);
-        if (!swapSuccess) {
-            revert FailedSwap({
-                sourceTokenAddress: sourceTokenAddress,
-                sourceTokenAmount: sourceTokenAmount,
-                paymentTokenAddress: paymentTokenAddress,
-                paymentTokenAmount: paymentTokenAmount
-            });
-        }
-
-        console.log(
-            "after swap contract balances: source-%s, payment-%s, native-%s",
-            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this)),
-            address(this).balance
-        );
-
-        //Transfer payment token to declared destination
-        bool transferOutSuccess = paymentToken.safeTransfer(paymentRecipient, paymentTokenAmount);
-        if (!transferOutSuccess) {
-            revert FailedTokenTransfer({
-                tokenAddress: paymentTokenAddress,
-                to: paymentRecipient,
-                amount: paymentTokenAmount
-            });
-        }
-
-        console.log(
-            "after transfer out balances: source-%s, payment-%s, native-%s",
-            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this)),
-            address(this).balance
-        );
-
-        //Refund any remaining payment token balance to user
-        {
-            uint256 remainingPaymentTokenBalance = paymentToken.balanceOf(address(this));
-            if (remainingPaymentTokenBalance > 0) {
-                //Refund any remaining payment token to user
-                bool refundPaymentTokenSuccess = paymentToken.transfer(_msgSender(), remainingPaymentTokenBalance);
-                if (!refundPaymentTokenSuccess) {
-                    revert FailedRefund({ tokenAddress: paymentTokenAddress, amount: remainingPaymentTokenBalance });
-                }
-            }
-        }
-
-        //Refund any remaining source token balance to user
-        //        uint256 remainingBalance = 0;
-
-        //Refund remaining source token to caller
-        if (!isNativeSwap && sourceToken.balanceOf(address(this)) > 0) {
-            uint256 remainingBalance = sourceToken.balanceOf(address(this));
-            bool refundSourceTokenSuccess = sourceToken.transfer(_msgSender(), remainingBalance);
-            if (!refundSourceTokenSuccess) {
-                revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
-            }
-        }
-
-        if (address(this).balance > startingBalance) {
-            //slither-disable-next-line arbitrary-send
-            payable(_msgSender()).transfer(startingBalance - address(this).balance);
-        }
-
-        console.log(
-            "after refunds: source-%s, payment-%s, native-%s",
-            isNativeSwap ? 0 : sourceToken.balanceOf(address(this)),
-            paymentToken.balanceOf(address(this)),
-            address(this).balance
-        );
-
-        logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
-    }
-
-    /**
-     * @notice Pay by swapping token or with native currency, using 0x as dex aggregator
-     * @param sourceTokenAddress Address of the token being sold for payment
-     * @param sourceTokenAmount Amount of the token being sold for payment
-     * @param paymentTokenAddress Address of the target payment token
-     * @param paymentTokenAmount Amount of the target payment token
+     * @param paymentTokenAmount Exact Amount of the target payment token
      * @param paymentReference Reference of the payment related
      */
     function payWithUniswap(
@@ -234,7 +99,7 @@ contract SpritzPayV1 is
         uint256 paymentTokenAmount,
         bytes32 paymentReference
     ) external payable whenNotPaused nonReentrant {
-        bool isNativeSwap = sourceTokenAddress == address(0);
+        bool isNativeSwap = sourceTokenAddress == 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
 
         IERC20 sourceToken = IERC20(sourceTokenAddress);
         IERC20 paymentToken = IERC20(paymentTokenAddress);
@@ -269,13 +134,45 @@ contract SpritzPayV1 is
         path[0] = sourceTokenAddress;
         path[1] = paymentTokenAddress;
 
-        router.swapTokensForExactTokens(paymentTokenAmount, sourceTokenAmount, path, paymentRecipient, block.timestamp);
+        uint256[] memory amounts;
 
-        uint256 remainingBalance = sourceToken.balanceOf(address(this));
+        if (!isNativeSwap) {
+            amounts = router.swapTokensForExactTokens(
+                paymentTokenAmount,
+                sourceTokenAmount,
+                path,
+                paymentRecipient,
+                block.timestamp
+            );
+        } else {
+            amounts = router.swapETHForExactTokens{ value: msg.value }(
+                paymentTokenAmount,
+                path,
+                paymentRecipient,
+                block.timestamp
+            );
+        }
+
+        uint256 sourceTokenSpentAmount = amounts[0];
+
+        logPayment(
+            sourceTokenAddress,
+            sourceTokenSpentAmount,
+            paymentTokenAddress,
+            paymentTokenAmount,
+            paymentReference
+        );
+
+        uint256 remainingBalance = sourceTokenAmount - sourceTokenSpentAmount;
         if (remainingBalance > 0) {
-            bool refundSourceTokenSuccess = sourceToken.transfer(_msgSender(), remainingBalance);
-            if (!refundSourceTokenSuccess) {
-                revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
+            if (isNativeSwap) {
+                bool sent = payable(_msgSender()).send(remainingBalance);
+                require(sent, "Failed to send Ether");
+            } else {
+                bool refundSourceTokenSuccess = sourceToken.safeTransfer(_msgSender(), remainingBalance);
+                if (!refundSourceTokenSuccess) {
+                    revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
+                }
             }
         }
     }
@@ -325,9 +222,6 @@ contract SpritzPayV1 is
             paymentReference
         );
     }
-
-    // Payable fallback to handle receiving protocol fee refunds from 0x.
-    receive() external payable {}
 
     /*
      * Admin functions
