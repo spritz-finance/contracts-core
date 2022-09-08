@@ -11,6 +11,7 @@ contract SpritzPayStorage {
 
     address internal paymentRecipient;
     address internal swapTarget;
+    address internal uniswapTarget;
 
     /**
      * @dev Sets a new address for the payment recipient
@@ -22,7 +23,7 @@ contract SpritzPayStorage {
     }
 
     /**
-     * @dev Sets a new address for the payment recipient
+     * @dev Sets a new address for the 0x swap target
      */
     function _setSwapTarget(address _swapTarget) internal virtual {
         if (_swapTarget == address(0)) revert SetZeroAddress();
@@ -30,9 +31,17 @@ contract SpritzPayStorage {
     }
 
     /**
+     * @dev Sets a new address for the uniswap router
+     */
+    function _setUniswapTarget(address _uniswapTarget) internal virtual {
+        if (_uniswapTarget == address(0)) revert SetZeroAddress();
+        uniswapTarget = uniswapTarget;
+    }
+
+    /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[48] private __gap;
+    uint256[47] private __gap;
 }

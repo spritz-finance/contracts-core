@@ -5,6 +5,9 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
 import "./lib/SpritzPayStorage.sol";
 import "./lib/SafeERC20.sol";
@@ -214,6 +217,67 @@ contract SpritzPayV1 is
         );
 
         logPayment(sourceTokenAddress, sourceTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
+    }
+
+    /**
+     * @notice Pay by swapping token or with native currency, using 0x as dex aggregator
+     * @param sourceTokenAddress Address of the token being sold for payment
+     * @param sourceTokenAmount Amount of the token being sold for payment
+     * @param paymentTokenAddress Address of the target payment token
+     * @param paymentTokenAmount Amount of the target payment token
+     * @param paymentReference Reference of the payment related
+     */
+    function payWithUniswap(
+        address sourceTokenAddress,
+        uint256 sourceTokenAmount,
+        address paymentTokenAddress,
+        uint256 paymentTokenAmount,
+        bytes32 paymentReference
+    ) external payable whenNotPaused nonReentrant {
+        bool isNativeSwap = sourceTokenAddress == address(0);
+
+        IERC20 sourceToken = IERC20(sourceTokenAddress);
+        IERC20 paymentToken = IERC20(paymentTokenAddress);
+        IUniswapV2Router02 router = IUniswapV2Router02(swapTarget);
+
+        // If swap involves non-native token
+        if (!isNativeSwap) {
+            //Ensure our contract gives sufficient allowance to swap target
+            if (sourceToken.allowance(address(this), swapTarget) < sourceTokenAmount) {
+                bool approveSuccess = approveTokenSpend(sourceTokenAddress, swapTarget);
+                require(approveSuccess, "Could not approve swapTarget");
+            }
+
+            //Transfer from user to our contract
+            bool transferInSuccess = safeTransferToken(
+                sourceTokenAddress,
+                _msgSender(),
+                address(this),
+                sourceTokenAmount
+            );
+
+            if (!transferInSuccess) {
+                revert FailedTokenTransfer({
+                    tokenAddress: sourceTokenAddress,
+                    to: address(this),
+                    amount: sourceTokenAmount
+                });
+            }
+        }
+
+        address[] memory path = new address[](2);
+        path[0] = sourceTokenAddress;
+        path[1] = paymentTokenAddress;
+
+        router.swapTokensForExactTokens(paymentTokenAmount, sourceTokenAmount, path, paymentRecipient, block.timestamp);
+
+        uint256 remainingBalance = sourceToken.balanceOf(address(this));
+        if (remainingBalance > 0) {
+            bool refundSourceTokenSuccess = sourceToken.transfer(_msgSender(), remainingBalance);
+            if (!refundSourceTokenSuccess) {
+                revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
+            }
+        }
     }
 
     /**
