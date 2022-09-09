@@ -48,6 +48,9 @@ contract SpritzPayV1 is
         bytes32 paymentReference
     );
 
+    /**
+     * @dev Constructor for upgradable contract
+     */
     function initialize(address _paymentRecipient, address _swapTarget) public virtual initializer {
         _setPaymentRecipient(_paymentRecipient);
         _setSwapTarget(_swapTarget);
@@ -60,14 +63,22 @@ contract SpritzPayV1 is
      * @notice Pay by direct stablecoin transfer
      * @param paymentTokenAddress Address of the target payment token
      * @param paymentTokenAmount Payment amount, denominated in target payment token
-     * @param paymentReference Reference of the related payment
+     * @param paymentReference Arbitrary reference ID of the related payment
      */
     function payWithToken(
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference
     ) external whenNotPaused {
-        logPayment(paymentTokenAddress, paymentTokenAmount, paymentTokenAddress, paymentTokenAmount, paymentReference);
+        emit Payment(
+            paymentRecipient,
+            _msgSender(),
+            paymentTokenAddress,
+            paymentTokenAmount,
+            paymentTokenAddress,
+            paymentTokenAmount,
+            paymentReference
+        );
 
         bool transferSuccess = safeTransferToken(
             paymentTokenAddress,
@@ -85,16 +96,17 @@ contract SpritzPayV1 is
     }
 
     /**
-     * @notice Pay by swapping token or with native currency, using uniswapv2 as swap provider.
+     * @notice Pay by swapping token or with native currency, using uniswapv2 as swap provider. Uses
+     *          Uniswap exact output trade type
      * @param sourceTokenAddress Address of the token being sold for payment
-     * @param sourceTokenAmount Max Amount of the token being sold for payment
+     * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
      * @param paymentTokenAddress Address of the target payment token
      * @param paymentTokenAmount Exact Amount of the target payment token
-     * @param paymentReference Reference of the payment related
+     * @param paymentReference Arbitrary reference ID of the related payment
      */
     function payWithSwap(
         address sourceTokenAddress,
-        uint256 sourceTokenAmount,
+        uint256 sourceTokenAmountMax,
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference
@@ -108,7 +120,7 @@ contract SpritzPayV1 is
         // the swap router
         if (!isNativeSwap) {
             //Ensure our contract gives sufficient allowance to swap target
-            if (sourceToken.allowance(address(this), swapTarget) < sourceTokenAmount) {
+            if (sourceToken.allowance(address(this), swapTarget) < sourceTokenAmountMax) {
                 bool approveSuccess = approveTokenSpend(sourceTokenAddress, swapTarget);
                 require(approveSuccess, "Could not approve swapTarget");
             }
@@ -118,14 +130,14 @@ contract SpritzPayV1 is
                 sourceTokenAddress,
                 _msgSender(),
                 address(this),
-                sourceTokenAmount
+                sourceTokenAmountMax
             );
 
             if (!transferInSuccess) {
                 revert FailedTokenTransfer({
                     tokenAddress: sourceTokenAddress,
                     to: address(this),
-                    amount: sourceTokenAmount
+                    amount: sourceTokenAmountMax
                 });
             }
         }
@@ -140,7 +152,7 @@ contract SpritzPayV1 is
         if (!isNativeSwap) {
             amounts = router.swapTokensForExactTokens(
                 paymentTokenAmount,
-                sourceTokenAmount,
+                sourceTokenAmountMax,
                 path,
                 paymentRecipient,
                 block.timestamp
@@ -158,7 +170,9 @@ contract SpritzPayV1 is
 
         require(amounts[1] == paymentTokenAmount, "Swap did not yield declared payment amount");
 
-        logPayment(
+        emit Payment(
+            paymentRecipient,
+            _msgSender(),
             sourceTokenAddress,
             sourceTokenSpentAmount,
             paymentTokenAddress,
@@ -167,8 +181,7 @@ contract SpritzPayV1 is
         );
 
         //Refund remaining balance left after the swap to the user
-
-        uint256 remainingBalance = sourceTokenAmount - sourceTokenSpentAmount;
+        uint256 remainingBalance = sourceTokenAmountMax - sourceTokenSpentAmount;
         if (remainingBalance > 0) {
             bool refundSuccess = isNativeSwap
                 ? payable(_msgSender()).send(remainingBalance)
@@ -206,24 +219,6 @@ contract SpritzPayV1 is
     ) internal returns (bool transferSuccess) {
         IERC20 erc20 = IERC20(token);
         return erc20.safeTransferFrom(from, to, amount);
-    }
-
-    function logPayment(
-        address sourceTokenAddress,
-        uint256 sourceTokenAmount,
-        address paymentTokenAddress,
-        uint256 paymentTokenAmount,
-        bytes32 paymentReference
-    ) internal {
-        emit Payment(
-            paymentRecipient,
-            _msgSender(),
-            sourceTokenAddress,
-            sourceTokenAmount,
-            paymentTokenAddress,
-            paymentTokenAmount,
-            paymentReference
-        );
     }
 
     /*
