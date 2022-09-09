@@ -3,8 +3,8 @@ import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 
 import { SpritzPayV1 } from "../../src/types";
+import { QUICKSWAP_ROUTER_POLYGON_ADDRESS } from "../../tasks/deploy/constants";
 import {
-  QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   USDC_POLYGON_ADDRESS,
   USDC_WHALE_ADDRESS,
   WBTC_HOLDER_ADDRESS,
