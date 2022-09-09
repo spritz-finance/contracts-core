@@ -48,9 +48,14 @@ contract SpritzPayV1 is
     /**
      * @dev Constructor for upgradable contract
      */
-    function initialize(address _paymentRecipient, address _swapTarget) public virtual initializer {
+    function initialize(
+        address _paymentRecipient,
+        address _swapTarget,
+        address _wrappedNative
+    ) public virtual initializer {
         _setPaymentRecipient(_paymentRecipient);
         _setSwapTarget(_swapTarget);
+        _setWrappedNative(_wrappedNative);
         __Ownable_init();
         __Pausable_init();
         __ReentrancyGuard_init();
@@ -108,7 +113,7 @@ contract SpritzPayV1 is
         uint256 paymentTokenAmount,
         bytes32 paymentReference
     ) external payable whenNotPaused nonReentrant {
-        bool isNativeSwap = sourceTokenAddress == 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
+        bool isNativeSwap = sourceTokenAddress == wrappedNative;
 
         IERC20 sourceToken = IERC20(sourceTokenAddress);
         IUniswapV2Router02 router = IUniswapV2Router02(swapTarget);

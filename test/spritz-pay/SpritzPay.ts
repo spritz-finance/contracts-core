@@ -42,6 +42,7 @@ describe("SpritzPay", function () {
     spritzPay = (await upgrades.deployProxy(spritzPayFactory, [
       PAYMENT_RECIPIENT_ADDRESS,
       QUICKSWAP_ROUTER_POLYGON_ADDRESS,
+      WETH.address,
     ])) as SpritzPayV1;
     await spritzPay.deployed();
   });
