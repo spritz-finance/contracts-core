@@ -6,12 +6,9 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
 import "./lib/SpritzPayStorage.sol";
 import "./lib/SafeERC20.sol";
-import "hardhat/console.sol";
 
 error FailedTokenTransfer(address tokenAddress, address to, uint256 amount);
 error FailedSwap(

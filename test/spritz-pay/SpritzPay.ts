@@ -46,155 +46,6 @@ describe("SpritzPay", function () {
     await spritzPay.deployed();
   });
 
-  describe("payWithUniswap", () => {
-    it("should swap token for token", async () => {
-      const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
-      await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
-
-      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
-
-      await spritzPay
-        .connect(defiUser)
-        .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference);
-    });
-
-    it("should swap native for token", async () => {
-      const bestTrade = await getBestStablecoinTradeForToken(WETH, 5);
-
-      console.log(bestTrade);
-
-      console.log("current balance", await defiUser.getBalance());
-
-      await spritzPay
-        .connect(defiUser)
-        .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference, {
-          value: bestTrade.amountInMax,
-        });
-    });
-  });
-  /*
-  describe.skip("payWithSwap", () => {
-    const sourceTokenAddress = WBTC_POLYGON_ADDRESS;
-    const sourceTokenAddress2 = ZERO_ADDRESS;
-    const paymentTokenAddress = USDC_POLYGON_ADDRESS;
-    const paymentAmount = 1000000;
-    const allowanceAmount = 1000000000000000;
-
-    it("reverts if the contract has been paused", async () => {
-      const [sourceToken] = await getERC20Contracts([sourceTokenAddress, paymentTokenAddress]);
-      await sourceToken.connect(defiUser).approve(spritzPay.address, allowanceAmount);
-      await spritzPay.pause();
-      await expect(spritzPay.connect(defiUser).payWithToken(tokenAddress, 100000, reference)).to.be.revertedWith(
-        "Pausable: paused",
-      );
-    });
-
-    describe("token for token", () => {
-      it("swap directly with 0x should be valid", async () => {
-        const quote = await getPayWithSwapArgs(paymentTokenAddress, paymentAmount, sourceTokenAddress, reference);
-
-        const [sourceToken, paymentToken] = await getERC20Contracts([sourceTokenAddress, paymentTokenAddress]);
-
-        await sourceToken.connect(defiUser).approve(ZEROEX_ROUTER_POLYGON, allowanceAmount);
-        const paymentTokenBalanceBefore = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalanceBefore = await sourceToken.balanceOf(defiUser.address);
-
-        await defiUser.sendTransaction({
-          to: ZEROEX_ROUTER_POLYGON,
-          data: quote[4],
-          value: quote[6].value,
-          gasPrice: quote[6].gasPrice,
-        });
-
-        const paymentTokenBalance = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalance = await sourceToken.balanceOf(defiUser.address);
-
-        console.log(`Source token difference: ${sourceTokenBalance.sub(sourceTokenBalanceBefore).toString()}`);
-        console.log(`Payment token difference: ${paymentTokenBalance.sub(paymentTokenBalanceBefore).toString()}`);
-      });
-
-      it("should swap a token via the contract", async () => {
-        const args = await getPayWithSwapArgs(paymentTokenAddress, paymentAmount, sourceTokenAddress, reference);
-
-        const [sourceToken, paymentToken] = await getERC20Contracts([sourceTokenAddress, paymentTokenAddress]);
-
-        const paymentTokenBalanceBefore = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalanceBefore = await sourceToken.balanceOf(defiUser.address);
-
-        await sourceToken.connect(defiUser).approve(spritzPay.address, args[1]);
-
-        //@ts-ignore
-        await spritzPay.connect(defiUser).payWithSwap(...args);
-
-        const recipientBalanceAfter = await paymentToken.balanceOf(PAYMENT_RECIPIENT_ADDRESS);
-        expect(recipientBalanceAfter).to.eq(paymentAmount);
-
-        const contractSourceTokenBalanceAfter = await sourceToken.balanceOf(spritzPay.address);
-        expect(contractSourceTokenBalanceAfter).to.eq(0);
-
-        const contractPaymentTokenBalanceAfter = await paymentToken.balanceOf(spritzPay.address);
-        expect(contractPaymentTokenBalanceAfter).to.eq(0);
-
-        const paymentTokenBalance = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalance = await sourceToken.balanceOf(defiUser.address);
-
-        console.log(`Source token difference: ${sourceTokenBalance.sub(sourceTokenBalanceBefore).toString()}`);
-        console.log(`Payment token difference: ${paymentTokenBalance.sub(paymentTokenBalanceBefore).toString()}`);
-      });
-    });
-
-    describe("native for token", () => {
-      it("swap directly with 0x should be valid", async () => {
-        const quote = await getPayWithSwapArgs(paymentTokenAddress, paymentAmount, sourceTokenAddress2, reference);
-
-        const [paymentToken] = await getERC20Contracts([paymentTokenAddress]);
-
-        const paymentTokenBalanceBefore = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalanceBefore = await defiUser.getBalance();
-
-        await defiUser.sendTransaction({
-          to: ZEROEX_ROUTER_POLYGON,
-          data: quote[4],
-          value: quote[6].value,
-          gasPrice: quote[6].gasPrice,
-        });
-
-        const paymentTokenBalance = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalance = await defiUser.getBalance();
-
-        console.log(`Source token difference: ${sourceTokenBalance.sub(sourceTokenBalanceBefore).toString()}`);
-        console.log(`Payment token difference: ${paymentTokenBalance.sub(paymentTokenBalanceBefore).toString()}`);
-      });
-
-      it("should swap native via the contract", async () => {
-        const args = await getPayWithSwapArgs(paymentTokenAddress, paymentAmount, sourceTokenAddress2, reference);
-
-        const [paymentToken] = await getERC20Contracts([paymentTokenAddress]);
-
-        const paymentTokenBalanceBefore = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalanceBefore = await defiUser.getBalance();
-
-        //@ts-ignore
-        await spritzPay.connect(defiUser).payWithSwap(...args);
-
-        // const recipientBalanceAfter = await paymentToken.balanceOf(PAYMENT_RECIPIENT_ADDRESS);
-        // expect(recipientBalanceAfter).to.eq(paymentAmount);
-
-        const contractBalanceAfter = await spritzPay.provider.getBalance(spritzPay.address);
-        expect(contractBalanceAfter).to.eq(0);
-
-        const contractPaymentTokenBalanceAfter = await paymentToken.balanceOf(spritzPay.address);
-        expect(contractPaymentTokenBalanceAfter).to.eq(0);
-
-        const paymentTokenBalance = await paymentToken.balanceOf(defiUser.address);
-        const sourceTokenBalance = await defiUser.getBalance();
-
-        console.log(`Source token difference: ${sourceTokenBalance.sub(sourceTokenBalanceBefore).toString()}`);
-        console.log(`Payment token difference: ${paymentTokenBalance.sub(paymentTokenBalanceBefore).toString()}`);
-      });
-    });
-  });
-*/
   describe("payWithToken", () => {
     it("reverts if the user has not given the contract allowance", async () => {
       const paymentAmount = 100000;
@@ -247,6 +98,52 @@ describe("SpritzPay", function () {
       await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, 100000, reference)).to.be.revertedWith(
         "Pausable: paused",
       );
+    });
+  });
+
+  describe("payWithSwap", () => {
+    it("reverts if the contract has been paused", async () => {
+      const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
+      await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
+      await spritzPay.pause();
+
+      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
+
+      await expect(
+        spritzPay
+          .connect(defiUser)
+          .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference),
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
+    it("should swap token for token", async () => {
+      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
+
+      const [wbtcTokenContract, tokenBContract] = await getERC20Contracts([
+        WBTC_POLYGON_ADDRESS,
+        bestTrade.trade.route.path[1].address,
+      ]);
+      await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
+
+      console.log(bestTrade);
+
+      await spritzPay
+        .connect(defiUser)
+        .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference);
+
+      const recipientBalanceAfter = await tokenBContract.balanceOf(PAYMENT_RECIPIENT_ADDRESS);
+
+      expect(recipientBalanceAfter).to.eq(bestTrade.amountOut);
+    });
+
+    it("should swap native for token", async () => {
+      const bestTrade = await getBestStablecoinTradeForToken(WETH, 5);
+
+      await spritzPay
+        .connect(defiUser)
+        .payWithSwap(bestTrade.path[0], bestTrade.amountInMax, bestTrade.path[1], bestTrade.amountOut, reference, {
+          value: bestTrade.amountInMax,
+        });
     });
   });
 
