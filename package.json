@@ -11,7 +11,6 @@
     "commit": "git-cz",
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",
-    "deploy": "hardhat deploy:SpritzPay",
     "deploy:polygon": "hardhat deploy:SpritzPay --network polygon-mainnet",
     "upgrade:polygon": "hardhat upgrade:SpritzPay --network polygon-mainnet",
     "deploy-staging:polygon": "hardhat deploy-staging:SpritzPay --network polygon-mainnet",
@@ -30,7 +29,7 @@
     "prettier:check": "prettier --check --config ./.prettierrc.yml \"**/*.{js,json,md,sol,ts,yml}\"",
     "test": "hardhat test",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
-    "slither": "slither ./contracts/SpritzPayV1.sol --solc-remaps '@openzeppelin=node_modules/@openzeppelin' --exclude naming-convention,external-function,low-level-calls --filter-paths @openzeppelin",
+    "slither": "slither ./contracts/SpritzPayV1.sol --solc-remaps '@openzeppelin=node_modules/@openzeppelin @uniswap=node_modules/@uniswap' --exclude naming-convention,external-function,low-level-calls --filter-paths node_modules",
     "toolbox": "docker run -it --rm -v /${PWD}/contracts:/src trailofbits/eth-security-toolbox"
   },
   "devDependencies": {

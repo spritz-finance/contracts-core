@@ -9,33 +9,47 @@ contract SpritzPayStorage {
      */
     event PaymentRecipientChanged(address recipient, address sender);
 
-    address internal paymentRecipient;
-    address internal swapTarget;
-    address internal wrappedNative;
+    address internal _paymentRecipient;
+    address internal _swapTarget;
+    address internal _wrappedNative;
 
     /**
      * @dev Sets a new address for the payment recipient
      */
-    function _setPaymentRecipient(address _paymentRecipient) internal virtual {
-        if (_paymentRecipient == address(0)) revert SetZeroAddress();
-        paymentRecipient = _paymentRecipient;
+    function _setPaymentRecipient(address newPaymentRecipient) internal virtual {
+        if (newPaymentRecipient == address(0)) revert SetZeroAddress();
+        _paymentRecipient = newPaymentRecipient;
         emit PaymentRecipientChanged(_paymentRecipient, msg.sender);
+    }
+
+    /**
+     * @dev Returns the address of the payment recipient
+     */
+    function paymentRecipient() public view virtual returns (address) {
+        return _paymentRecipient;
     }
 
     /**
      * @dev Sets a new address for the swap target
      */
-    function _setSwapTarget(address _swapTarget) internal virtual {
-        if (_swapTarget == address(0)) revert SetZeroAddress();
-        swapTarget = _swapTarget;
+    function _setSwapTarget(address newSwapTarget) internal virtual {
+        if (newSwapTarget == address(0)) revert SetZeroAddress();
+        _swapTarget = newSwapTarget;
+    }
+
+    /**
+     * @dev Returns the address of the swap target
+     */
+    function swapTarget() public view virtual returns (address) {
+        return _swapTarget;
     }
 
     /**
      * @dev Sets a new address for the wrapped native token
      */
-    function _setWrappedNative(address _wrappedNative) internal virtual {
-        if (_wrappedNative == address(0)) revert SetZeroAddress();
-        wrappedNative = _wrappedNative;
+    function _setWrappedNative(address newWrappedNative) internal virtual {
+        if (newWrappedNative == address(0)) revert SetZeroAddress();
+        _wrappedNative = newWrappedNative;
     }
 
     /**

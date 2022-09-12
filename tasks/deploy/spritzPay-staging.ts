@@ -3,7 +3,7 @@ import { getImplementationAddress } from "@openzeppelin/upgrades-core";
 import { task } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
-import { SpritzPayV1__factory, SpritzPayV2__factory } from "../../src/types";
+import { SpritzPayV1__factory } from "../../src/types";
 import { verifyContract, verifyProxyContract } from "../utils/verify";
 import {
   PANCAKESWAP_ROUTER_BSC_ADDRESS,
@@ -36,7 +36,7 @@ task("deploy-staging:SpritzPay").setAction(async function (_taskArguments: TaskA
   }
   console.log("Deploying Spritz staging contract with args", { args });
 
-  const spritzPayStagingFactory = await hre.ethers.getContractFactory("SpritzPayV2");
+  const spritzPayStagingFactory = await hre.ethers.getContractFactory("SpritzPayV1");
 
   const proxy = await hre.upgrades.deployProxy(spritzPayStagingFactory, args);
   await proxy.deployed();
@@ -49,7 +49,7 @@ task("deploy-staging:SpritzPay").setAction(async function (_taskArguments: TaskA
   const implementationContract = await hre.ethers.getContractAt("SpritzPayV1", implementationAddress);
 
   await verifyProxyContract(proxy, implementationContract, hre, [], {
-    contract: "contracts/SpritzPayV2.sol:SpritzPayV2",
+    contract: "contracts/SpritzPayV1.sol:SpritzPayV1",
   });
 });
 
@@ -62,9 +62,7 @@ task("import-staging:SpritzPay").setAction(async function (_taskArguments: TaskA
     throw new Error(`Constructor arguments for network ${network} not found!`);
   }
 
-  const spritzPayFactory: SpritzPayV2__factory = <SpritzPayV2__factory>(
-    await hre.ethers.getContractFactory("SpritzPayV2__factory")
-  );
+  const spritzPayFactory = await hre.ethers.getContractFactory("SpritzPayV1__factory");
 
   await hre.upgrades.forceImport(SPRITZPAY_STAGING_PROXY_ADDRESS, spritzPayFactory);
 });
@@ -78,9 +76,7 @@ task("upgrade-staging:SpritzPay").setAction(async function (_taskArguments: Task
     throw new Error(`Constructor arguments for network ${network} not found!`);
   }
 
-  const spritzPayFactory: SpritzPayV2__factory = <SpritzPayV2__factory>(
-    await hre.ethers.getContractFactory("SpritzPayV2")
-  );
+  const spritzPayFactory: SpritzPayV1__factory = await hre.ethers.getContractFactory("SpritzPayV1");
 
   console.log("Preparing proposal...");
   const proposal = await hre.defender.proposeUpgrade(SPRITZPAY_STAGING_PROXY_ADDRESS, spritzPayFactory, {});
@@ -91,8 +87,6 @@ task("upgrade-staging:SpritzPay").setAction(async function (_taskArguments: Task
   console.log("Verifying");
 
   await verifyContract(proposal.metadata?.newImplementationAddress!, hre, [], {
-    contract: "contracts/SpritzPayV2.sol:SpritzPayV2",
+    contract: "contracts/SpritzPayV1.sol:SpritzPayV1",
   });
-
-  const verification = await hre.defender.verifyDeployment;
 });
