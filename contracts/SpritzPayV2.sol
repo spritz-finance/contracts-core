@@ -105,18 +105,19 @@ contract SpritzPayV2 is
      * @param paymentTokenAddress Address of the target payment token
      * @param paymentTokenAmount Exact Amount of the target payment token
      * @param paymentReference Arbitrary reference ID of the related payment
+     * @param deadline Swap deadline
      */
     function payWithSwap(
         address sourceTokenAddress,
         uint256 sourceTokenAmountMax,
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
-        bytes32 paymentReference
+        bytes32 paymentReference,
+        uint256 deadline
     ) external payable whenNotPaused nonReentrant {
-        bool isNativeSwap = sourceTokenAddress == wrappedNative;
-
         IERC20 sourceToken = IERC20(sourceTokenAddress);
         IUniswapV2Router02 router = IUniswapV2Router02(swapTarget);
+        bool isNativeSwap = sourceTokenAddress == wrappedNative;
 
         // If swap involves non-native token, transfer token in, and grant allowance to
         // the swap router
@@ -157,14 +158,14 @@ contract SpritzPayV2 is
                 sourceTokenAmountMax,
                 path,
                 paymentRecipient,
-                block.timestamp + 120
+                deadline
             );
         } else {
             amounts = router.swapETHForExactTokens{ value: msg.value }(
                 paymentTokenAmount,
                 path,
                 paymentRecipient,
-                block.timestamp + 120
+                deadline
             );
         }
 

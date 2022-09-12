@@ -36,6 +36,8 @@ task("deploy:SpritzPay").setAction(async function (_taskArguments: TaskArguments
     await hre.ethers.getContractFactory("SpritzPayV1")
   );
 
+  console.log("Deploying Spritz contract with args", { args });
+
   const proxy = await hre.upgrades.deployProxy(spritzPayFactory, args);
   await proxy.deployed();
 

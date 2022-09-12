@@ -24,3 +24,23 @@ export async function verifyProxyContract(
     ...taskArgs,
   });
 }
+
+export async function verifyContract(
+  address: string,
+  hre: HardhatRuntimeEnvironment,
+  args: any[] = [],
+  taskArgs: Record<any, any> = {},
+) {
+  if (hre.network.name === "hardhat") {
+    console.log("Skipping verification on local network");
+    return;
+  }
+
+  console.log("Deploy finished");
+
+  await hre.run(`verify:verify`, {
+    address,
+    constructorArguments: args,
+    ...taskArgs,
+  });
+}

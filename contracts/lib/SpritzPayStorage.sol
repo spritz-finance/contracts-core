@@ -31,7 +31,7 @@ contract SpritzPayStorage {
     }
 
     /**
-     * @dev Sets Wrapped native currency adddress
+     * @dev Sets a new address for the wrapped native token
      */
     function _setWrappedNative(address _wrappedNative) internal virtual {
         if (_wrappedNative == address(0)) revert SetZeroAddress();
