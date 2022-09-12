@@ -20,10 +20,10 @@ error FailedSwap(
 error FailedRefund(address tokenAddress, uint256 amount);
 
 /**
- * @title SpritzPayV1
+ * @title SpritzPayV2
  * @notice Main entry point for Spritz payments
  */
-contract SpritzPayV1 is
+contract SpritzPayV2 is
     SpritzPayStorage,
     Initializable,
     OwnableUpgradeable,
@@ -157,14 +157,14 @@ contract SpritzPayV1 is
                 sourceTokenAmountMax,
                 path,
                 paymentRecipient,
-                block.timestamp
+                block.timestamp + 120
             );
         } else {
             amounts = router.swapETHForExactTokens{ value: msg.value }(
                 paymentTokenAmount,
                 path,
                 paymentRecipient,
-                block.timestamp
+                block.timestamp + 120
             );
         }
 
@@ -228,8 +228,6 @@ contract SpritzPayV1 is
      */
 
     receive() external payable {}
-
-    fallback() external payable {}
 
     function pause() external onlyOwner {
         _pause();
