@@ -14,7 +14,7 @@ export async function verifyProxyContract(
     return;
   }
 
-  await proxy.deployTransaction.wait(5);
+  await proxy.deployTransaction.wait(8);
 
   console.log("Deploy finished");
 

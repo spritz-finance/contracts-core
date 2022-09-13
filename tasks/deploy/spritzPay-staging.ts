@@ -6,6 +6,7 @@ import type { TaskArguments } from "hardhat/types";
 import { SpritzPayV1__factory } from "../../src/types";
 import { verifyContract, verifyProxyContract } from "../utils/verify";
 import {
+  ADMIN_STAGING_POLYGON,
   PANCAKESWAP_ROUTER_BSC_ADDRESS,
   QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   SPRITZPAY_STAGING_PROXY_ADDRESS,
@@ -24,11 +25,11 @@ const chainArgs: Record<string, any> = {
     TEAM_WALLET_POLYGON,
     QUICKSWAP_ROUTER_POLYGON_ADDRESS,
     WMATIC_POLYGON_ADDRESS,
-    TEAM_WALLET_POLYGON,
+    ADMIN_STAGING_POLYGON,
   ],
-  optimism: [TEAM_WALLET_OPTIMISM, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WETH_OPTIMISM_ADDRESS, TEAM_WALLET_POLYGON],
-  bsc: [TEAM_WALLET_BSC, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS, TEAM_WALLET_POLYGON],
-  avalanche: [TEAM_WALLET_POLYGON, TRADERJOE_ROUTER_AVALANCHE_ADDRESS, WAVAX_AVALANCHE_ADDRESS, TEAM_WALLET_POLYGON],
+  optimism: [TEAM_WALLET_OPTIMISM, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WETH_OPTIMISM_ADDRESS, ADMIN_STAGING_POLYGON],
+  bsc: [TEAM_WALLET_BSC, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS, ADMIN_STAGING_POLYGON],
+  avalanche: [TEAM_WALLET_POLYGON, TRADERJOE_ROUTER_AVALANCHE_ADDRESS, WAVAX_AVALANCHE_ADDRESS, ADMIN_STAGING_POLYGON],
 };
 
 task("deploy-staging:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {
@@ -58,19 +59,19 @@ task("deploy-staging:SpritzPay").setAction(async function (_taskArguments: TaskA
   });
 });
 
-task("import-staging:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {
-  const network = hre.hardhatArguments.network;
-
-  const args = chainArgs[network!];
-
-  if (!args) {
-    throw new Error(`Constructor arguments for network ${network} not found!`);
-  }
-
-  const spritzPayFactory = await hre.ethers.getContractFactory("SpritzPayV1__factory");
-
-  await hre.upgrades.forceImport(SPRITZPAY_STAGING_PROXY_ADDRESS, spritzPayFactory);
-});
+// task("import-staging:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {
+//   const network = hre.hardhatArguments.network;
+//
+//   const args = chainArgs[network!];
+//
+//   if (!args) {
+//     throw new Error(`Constructor arguments for network ${network} not found!`);
+//   }
+//
+//   const spritzPayFactory = await hre.ethers.getContractFactory("SpritzPayV1__factory");
+//
+//   await hre.upgrades.forceImport(SPRITZPAY_STAGING_PROXY_ADDRESS, spritzPayFactory);
+// });
 
 task("upgrade-staging:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {
   const network = hre.hardhatArguments.network;
