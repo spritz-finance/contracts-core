@@ -13,6 +13,8 @@ contract SpritzPayStorage {
     address internal _swapTarget;
     address internal _wrappedNative;
 
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     /**
      * @dev Sets a new address for the payment recipient
      */
@@ -57,5 +59,5 @@ contract SpritzPayStorage {
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }

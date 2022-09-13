@@ -20,10 +20,15 @@ import {
 } from "./constants";
 
 const chainArgs: Record<string, any> = {
-  "polygon-mainnet": [TEAM_WALLET_POLYGON, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WMATIC_POLYGON_ADDRESS],
-  optimism: [TEAM_WALLET_OPTIMISM, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WETH_OPTIMISM_ADDRESS],
-  bsc: [TEAM_WALLET_BSC, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS],
-  avalance: [TEAM_WALLET_POLYGON, TRADERJOE_ROUTER_AVALANCHE_ADDRESS, WAVAX_AVALANCHE_ADDRESS],
+  "polygon-mainnet": [
+    TEAM_WALLET_POLYGON,
+    QUICKSWAP_ROUTER_POLYGON_ADDRESS,
+    WMATIC_POLYGON_ADDRESS,
+    TEAM_WALLET_POLYGON,
+  ],
+  optimism: [TEAM_WALLET_OPTIMISM, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WETH_OPTIMISM_ADDRESS, TEAM_WALLET_POLYGON],
+  bsc: [TEAM_WALLET_BSC, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS, TEAM_WALLET_POLYGON],
+  avalanche: [TEAM_WALLET_POLYGON, TRADERJOE_ROUTER_AVALANCHE_ADDRESS, WAVAX_AVALANCHE_ADDRESS, TEAM_WALLET_POLYGON],
 };
 
 task("deploy-staging:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {
@@ -76,7 +81,7 @@ task("upgrade-staging:SpritzPay").setAction(async function (_taskArguments: Task
     throw new Error(`Constructor arguments for network ${network} not found!`);
   }
 
-  const spritzPayFactory: SpritzPayV1__factory = await hre.ethers.getContractFactory("SpritzPayV1");
+  const spritzPayFactory = await hre.ethers.getContractFactory("SpritzPayV1");
 
   console.log("Preparing proposal...");
   const proposal = await hre.defender.proposeUpgrade(SPRITZPAY_STAGING_PROXY_ADDRESS, spritzPayFactory, {});

@@ -27,14 +27,11 @@ error FailedRefund(address tokenAddress, uint256 amount);
 contract SpritzPayV1 is
     SpritzPayStorage,
     Initializable,
-    OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    AccessControlEnumerableUpgradeable
+    AccessControlEnumerableUpgradeable,
+    ReentrancyGuardUpgradeable
 {
     using SafeERC20 for IERC20;
-
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /**
      * @dev Emitted when a payment has been sent
@@ -55,14 +52,17 @@ contract SpritzPayV1 is
     function initialize(
         address __paymentRecipient,
         address __swapTarget,
-        address __wrappedNative
+        address __wrappedNative,
+        address __admin
     ) public virtual initializer {
+        __Pausable_init();
+        __AccessControlEnumerable_init();
+        __ReentrancyGuard_init();
         _setPaymentRecipient(__paymentRecipient);
         _setSwapTarget(__swapTarget);
         _setWrappedNative(__wrappedNative);
-        __Ownable_init();
-        __Pausable_init();
-        __ReentrancyGuard_init();
+        _setupRole(DEFAULT_ADMIN_ROLE, __admin);
+        _setupRole(PAUSER_ROLE, __admin);
     }
 
     /**
@@ -238,11 +238,11 @@ contract SpritzPayV1 is
         _pause();
     }
 
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
-    function setPaymentRecipient(address newPaymentRecipient) external onlyOwner {
+    function setPaymentRecipient(address newPaymentRecipient) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPaymentRecipient(newPaymentRecipient);
     }
 }
