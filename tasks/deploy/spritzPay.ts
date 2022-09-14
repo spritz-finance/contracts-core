@@ -1,52 +1,60 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getImplementationAddress } from "@openzeppelin/upgrades-core";
-import { task } from "hardhat/config";
+import { task, types } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
-import { SpritzPayV1__factory } from "../../src/types";
-import { verifyProxyContract } from "../utils/verify";
-import {
-  PANCAKESWAP_ROUTER_BSC_ADDRESS,
-  QUICKSWAP_ROUTER_POLYGON_ADDRESS,
-  SPRITZ_TREASURY_WALLET,
-  TRADERJOE_ROUTER_AVALANCHE_ADDRESS,
-  WAVAX_AVALANCHE_ADDRESS,
-  WBNB_BSC_ADDRESS,
-  WETH_OPTIMISM_ADDRESS,
-  WMATIC_POLYGON_ADDRESS,
-} from "./constants";
+import { verifyContractUsingDefender, verifyProxyContract } from "../utils/verify";
+import { getContractConfig } from "./config";
 
-const chainArgs: Record<string, any> = {
-  "polygon-mainnet": [SPRITZ_TREASURY_WALLET, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WMATIC_POLYGON_ADDRESS],
-  optimism: [SPRITZ_TREASURY_WALLET, QUICKSWAP_ROUTER_POLYGON_ADDRESS, WETH_OPTIMISM_ADDRESS], //TBD
-  bsc: [SPRITZ_TREASURY_WALLET, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS],
-  avalanche: [SPRITZ_TREASURY_WALLET, TRADERJOE_ROUTER_AVALANCHE_ADDRESS, WAVAX_AVALANCHE_ADDRESS],
-};
+task("deploy:SpritzPay")
+  .addOptionalParam("env", "Production or Staging", "production", types.string)
+  .setAction(async function (_taskArguments: TaskArguments, hre) {
+    const config = getContractConfig(_taskArguments, hre);
 
-task("deploy:SpritzPay").setAction(async function (_taskArguments: TaskArguments, hre) {
-  const network = hre.hardhatArguments.network;
+    const { args } = config;
 
-  const args = chainArgs[network!];
+    console.log(`Deploying Spritz ${_taskArguments.env} contract to ${hre.network.name} with args`, { args });
 
-  if (!args) {
-    throw new Error(`Constructor arguments for network ${network} not found!`);
-  }
+    const spritzPayStagingFactory = await hre.ethers.getContractFactory("SpritzPayV1");
 
-  const spritzPayFactory: SpritzPayV1__factory = <SpritzPayV1__factory>(
-    await hre.ethers.getContractFactory("SpritzPayV1")
-  );
+    const proxy = await hre.upgrades.deployProxy(spritzPayStagingFactory, args);
+    await proxy.deployed();
 
-  console.log("Deploying Spritz contract with args", { args });
+    console.log("Proxy contract address: ", proxy.address);
 
-  const proxy = await hre.upgrades.deployProxy(spritzPayFactory, args);
-  await proxy.deployed();
+    const implementationAddress = await getImplementationAddress(hre.ethers.provider, proxy.address);
+    console.log("Implementation contract address", implementationAddress);
 
-  console.log("Spritz proxy contract address: ", proxy.address);
+    console.log("Transferring proxyadmin ownership to ", args[0]);
+    await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
 
-  const implementationAddress = await getImplementationAddress(hre.ethers.provider, proxy.address);
-  console.log("Spritz implementation contract address: ", implementationAddress);
+    const implementationContract = await hre.ethers.getContractAt("SpritzPayV1", implementationAddress);
 
-  const implementationContract = await hre.ethers.getContractAt("SpritzPayV1", implementationAddress);
+    await verifyProxyContract(proxy, implementationContract, hre, [], {
+      contract: "contracts/SpritzPayV1.sol:SpritzPayV1",
+    });
+  });
 
-  await verifyProxyContract(proxy, implementationContract, hre, []);
-});
+task("upgrade:SpritzPay")
+  .addOptionalParam("env", "Production or Staging", "production", types.string)
+  .setAction(async function (_taskArguments: TaskArguments, hre) {
+    const config = getContractConfig(_taskArguments, hre);
+
+    const { args } = config;
+    console.log(`Upgrading Spritz ${_taskArguments.env} contract on ${hre.network.name}`);
+
+    const spritzPayFactory = await hre.ethers.getContractFactory("SpritzPayV1");
+
+    //TODO: upload artifacts and verify
+    //const artifact = hre.artifacts.readArtifactSync("contracts/SpritzPayV1.sol:SpritzPayV1")
+
+    console.log("Preparing proposal...");
+    const proposal = await hre.defender.proposeUpgrade(config.proxy, spritzPayFactory, {
+      multisig: args[0],
+      multisigType: "Gnosis Safe",
+    });
+
+    console.log("Upgrade proposal created at:", proposal.url);
+
+    await verifyContractUsingDefender(hre, proposal);
+  });

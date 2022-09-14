@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+
 error SetZeroAddress();
 
-contract SpritzPayStorage {
+contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
     /**
      * @dev Emitted when the payment recipient has been changed
      */
@@ -14,6 +17,22 @@ contract SpritzPayStorage {
     address internal _wrappedNative;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    /**
+     * @dev Initializes the contract
+     */
+    function __SpritzPayStorage_init(
+        address newAdmin,
+        address newPaymentRecipient,
+        address newSwapTarget,
+        address newWrappedNative
+    ) internal onlyInitializing {
+        _setupRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        _setupRole(PAUSER_ROLE, newAdmin);
+        _setPaymentRecipient(newPaymentRecipient);
+        _setSwapTarget(newSwapTarget);
+        _setWrappedNative(newWrappedNative);
+    }
 
     /**
      * @dev Sets a new address for the payment recipient

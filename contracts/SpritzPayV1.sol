@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -25,11 +24,11 @@ error FailedRefund(address tokenAddress, uint256 amount);
  * @notice Main entry point for Spritz payments
  */
 contract SpritzPayV1 is
-    SpritzPayStorage,
     Initializable,
     PausableUpgradeable,
     AccessControlEnumerableUpgradeable,
-    ReentrancyGuardUpgradeable
+    ReentrancyGuardUpgradeable,
+    SpritzPayStorage
 {
     using SafeERC20 for IERC20;
 
@@ -50,19 +49,15 @@ contract SpritzPayV1 is
      * @dev Constructor for upgradable contract
      */
     function initialize(
-        address __paymentRecipient,
-        address __swapTarget,
-        address __wrappedNative,
-        address __admin
+        address _admin,
+        address _paymentRecipient,
+        address _swapTarget,
+        address _wrappedNative
     ) public virtual initializer {
+        __SpritzPayStorage_init(_admin, _paymentRecipient, _swapTarget, _wrappedNative);
         __Pausable_init();
         __AccessControlEnumerable_init();
         __ReentrancyGuard_init();
-        _setPaymentRecipient(__paymentRecipient);
-        _setSwapTarget(__swapTarget);
-        _setWrappedNative(__wrappedNative);
-        _setupRole(DEFAULT_ADMIN_ROLE, __admin);
-        _setupRole(PAUSER_ROLE, __admin);
     }
 
     /**

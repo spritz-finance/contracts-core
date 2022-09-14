@@ -58,10 +58,10 @@ describe("SpritzPay", function () {
   this.beforeEach(async function () {
     const spritzPayFactory = await ethers.getContractFactory("SpritzPayV1");
     spritzPay = (await upgrades.deployProxy(spritzPayFactory, [
+      admin.address,
       recipient.address,
       QUICKSWAP_ROUTER_POLYGON_ADDRESS,
       WETH.address,
-      admin.address,
     ])) as SpritzPayV1;
     await spritzPay.deployed();
     deadline = await getDeadline();
