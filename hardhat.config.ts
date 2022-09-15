@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
+import "@openzeppelin/hardhat-defender";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import { config as dotenvConfig } from "dotenv";
@@ -96,11 +97,15 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: FORKING_URL,
-        blockNumber: 30965500,
+        // blockNumber: 30965500,
+        blockNumber: 32802513,
       },
       accounts: {
         mnemonic,
       },
+      // accounts: [{
+      //   privateKey
+      // }],
       chainId: chainIds.hardhat,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
@@ -141,6 +146,10 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "src/types",
     target: "ethers-v5",
+  },
+  defender: {
+    apiKey: process.env.DEFENDER_TEAM_API_KEY!,
+    apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY!,
   },
 };
 
