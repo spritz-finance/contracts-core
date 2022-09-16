@@ -106,7 +106,8 @@ const config: HardhatUserConfig = {
       // accounts: [{
       //   privateKey
       // }],
-      chainId: chainIds.hardhat,
+      // chainId: chainIds.hardhat,
+      chainId: 137,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
     avalanche: getChainConfig("avalanche"),

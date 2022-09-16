@@ -99,21 +99,21 @@ contract SpritzPayV1 is
     /**
      * @notice Pay by swapping token or with native currency, using uniswapv2 as swap provider. Uses
      *          Uniswap exact output trade type
-     * @param sourceTokenAddress Address of the token being sold for payment
+     * @param path Swap path
      * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
-     * @param paymentTokenAddress Address of the target payment token
      * @param paymentTokenAmount Exact Amount of the target payment token
      * @param paymentReference Arbitrary reference ID of the related payment
      * @param deadline Swap deadline
      */
     function payWithSwap(
-        address sourceTokenAddress,
+        address[] calldata path,
         uint256 sourceTokenAmountMax,
-        address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference,
         uint256 deadline
     ) external payable whenNotPaused nonReentrant {
+        address sourceTokenAddress = path[0];
+        address paymentTokenAddress = path[path.length - 1];
         IERC20 sourceToken = IERC20(sourceTokenAddress);
         IUniswapV2Router02 router = IUniswapV2Router02(_swapTarget);
         bool isNativeSwap = sourceTokenAddress == _wrappedNative;
@@ -144,10 +144,6 @@ contract SpritzPayV1 is
             }
         }
 
-        address[] memory path = new address[](2);
-        path[0] = sourceTokenAddress;
-        path[1] = paymentTokenAddress;
-
         uint256[] memory amounts;
 
         //Execute the swap
@@ -170,7 +166,7 @@ contract SpritzPayV1 is
 
         uint256 sourceTokenSpentAmount = amounts[0];
 
-        require(amounts[1] == paymentTokenAmount, "Swap did not yield declared payment amount");
+        require(amounts[amounts.length - 1] == paymentTokenAmount, "Swap did not yield declared payment amount");
 
         emit Payment(
             _paymentRecipient,
