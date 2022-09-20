@@ -71,9 +71,8 @@ describe("SpritzPay", function () {
 
   describe("payWithToken", () => {
     it("reverts if the user has not given the contract allowance", async () => {
-      const paymentAmount = 100000;
       await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, 100000, reference)).to.be.revertedWith(
-        `FailedTokenTransfer("${tokenAddress}", "${recipient.address}", ${paymentAmount})`,
+        `ERC20: transfer amount exceeds allowance`,
       );
     });
 
