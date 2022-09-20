@@ -123,7 +123,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      * @dev Throws if called by any account other than the auto task wallet.
      */
     modifier onlyAutoTaskBot() {
-        _checkAutoTaskAddress(_msgSender());
+        _checkAutoTaskAddress(msg.sender);
         _;
     }
 
@@ -132,7 +132,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      */
     modifier checksActiveSubscriptions() {
         _;
-        _checkActiveSubscriptions(_msgSender());
+        _checkActiveSubscriptions(msg.sender);
     }
 
     /**
@@ -198,12 +198,12 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      */
     function deactivateSubscription(bytes32 subscriptionId) external checksActiveSubscriptions {
         Subscription storage subscription = subscriptions[subscriptionId];
-        if (subscription.owner != _msgSender()) revert UnauthorizedExecutor(_msgSender());
+        if (subscription.owner != msg.sender) revert UnauthorizedExecutor(msg.sender);
 
-        userSubscriptions[_msgSender()].remove(subscriptionId);
+        userSubscriptions[msg.sender].remove(subscriptionId);
         delete subscriptions[subscriptionId];
 
-        emit SubscriptionDeactivated(_msgSender(), subscriptionId);
+        emit SubscriptionDeactivated(msg.sender, subscriptionId);
     }
 
     /**
@@ -223,7 +223,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
         SubscriptionCadence cadence
     ) public checksActiveSubscriptions {
         unchecked {
-            subscriptionNonce[_msgSender()] += 1;
+            subscriptionNonce[msg.sender] += 1;
         }
 
         Subscription memory subscription = Subscription({
@@ -231,7 +231,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
             paymentAmount: paymentAmount,
             paymentCount: 0,
             totalPayments: totalPayments,
-            owner: _msgSender(),
+            owner: msg.sender,
             paymentToken: paymentToken,
             startTime: startTime,
             lastPaymentTimestamp: 0,
@@ -244,9 +244,9 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
         // store subscription
         subscriptions[subscriptionId] = subscription;
         // attribute subscription to user
-        userSubscriptions[_msgSender()].add(subscriptionId);
+        userSubscriptions[msg.sender].add(subscriptionId);
 
-        emit SubscriptionCreated(_msgSender(), subscriptionId);
+        emit SubscriptionCreated(msg.sender, subscriptionId);
     }
 
     /**
@@ -298,7 +298,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      * @dev Compute a collision-resistant id for the subscription
      */
     function newSubscriptionId() private view returns (bytes32) {
-        return keccak256(abi.encodePacked(_msgSender(), subscriptionNonce[_msgSender()]));
+        return keccak256(abi.encodePacked(msg.sender, subscriptionNonce[msg.sender]));
     }
 
     // need to check this
