@@ -7,17 +7,13 @@ import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 
 import { SpritzPayV1 } from "../../src/types";
-import { ACCEPTED_STABLECOINS_POLYGON, QUICKSWAP_ROUTER_POLYGON_ADDRESS } from "../../tasks/deploy/constants";
 import {
-  DAI_POLYGON_ADDRESS,
-  MIMATIC_POLYGON_ADDRESS,
+  ACCEPTED_STABLECOINS_POLYGON,
+  QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   USDC_POLYGON_ADDRESS,
-  USDC_WHALE_ADDRESS,
-  USDT_POLYGON_ADDRESS,
-  WBTC_HOLDER_ADDRESS,
-  WBTC_POLYGON_ADDRESS,
   WMATIC_POLYGON_ADDRESS,
-} from "../helpers/constants";
+} from "../../tasks/deploy/constants";
+import { USDC_WHALE_ADDRESS, WBTC_HOLDER_ADDRESS, WBTC_POLYGON_ADDRESS } from "../helpers/constants";
 import { getERC20Contracts } from "../helpers/helpers";
 
 const tokenAddress = USDC_POLYGON_ADDRESS;
@@ -146,7 +142,7 @@ describe("SpritzPay", function () {
       ).to.be.revertedWith("Pausable: paused");
     });
 
-    it("should swap token for token", async () => {
+    it("should swap token for token and emit a payment event", async () => {
       const { args } = await sdk.getPaymentArgs(WBTC_POLYGON_ADDRESS, 10, reference);
 
       const tokenBAddress = args[0][args[0].length - 1];
@@ -176,7 +172,7 @@ describe("SpritzPay", function () {
         );
     });
 
-    it("should swap native for token", async () => {
+    it("should swap native for token and emit an event", async () => {
       const { args } = await sdk.getPaymentArgs(NATIVE_ZERO_ADDRESS, 1, reference);
       const tokenBAddress = args[0][args[0].length - 1];
 
