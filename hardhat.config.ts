@@ -4,6 +4,7 @@ import "@openzeppelin/hardhat-defender";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import { config as dotenvConfig } from "dotenv";
+import "hardhat-abi-exporter";
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
 import { HardhatUserConfig } from "hardhat/config";
@@ -156,6 +157,16 @@ const config: HardhatUserConfig = {
   spdxLicenseIdentifier: {
     overwrite: true,
     runOnCompile: true,
+  },
+  abiExporter: {
+    path: "./src/abi",
+    runOnCompile: true,
+    clear: true,
+    flat: true,
+    only: ["Spritz.*"],
+    spacing: 2,
+    pretty: true,
+    // format: "minimal",
   },
 };
 
