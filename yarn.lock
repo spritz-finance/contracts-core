@@ -1464,7 +1464,7 @@
   dependencies:
     antlr4ts "^0.5.0-alpha.4"
 
-"@spritz-finance/sdk@^0.1.3-rc2":
+"@spritz-finance/sdk@^0.1.3":
   version "0.1.3"
   resolved "https://registry.yarnpkg.com/@spritz-finance/sdk/-/sdk-0.1.3.tgz#4b697ae78ec50d6ed0394a336ed863d6a5dc56e2"
   integrity sha512-LbRJRtxoPhdjgx5n0Gr3e8f3jcGtYnrSr5VUF1eeFrDT9toVwHNknUacvb/qAZZ592l4UPv9qMfiokaYVcw6Bw==

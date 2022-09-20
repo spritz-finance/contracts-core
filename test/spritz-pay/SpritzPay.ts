@@ -1,20 +1,25 @@
+import { BaseProvider } from "@ethersproject/providers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Network, SpritzPaySDK } from "@spritz-finance/sdk";
+import { NATIVE_ZERO_ADDRESS, Network, SpritzPaySDK } from "@spritz-finance/sdk";
+import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 
 import { SpritzPayV1 } from "../../src/types";
 import { QUICKSWAP_ROUTER_POLYGON_ADDRESS } from "../../tasks/deploy/constants";
 import {
+  DAI_POLYGON_ADDRESS,
+  MIMATIC_POLYGON_ADDRESS,
   USDC_POLYGON_ADDRESS,
   USDC_WHALE_ADDRESS,
+  USDT_POLYGON_ADDRESS,
   WBTC_HOLDER_ADDRESS,
   WBTC_POLYGON_ADDRESS,
 } from "../helpers/constants";
 import { WBTC, WETH, WMATIC, getBestStablecoinTradeForToken, getERC20Contracts } from "../helpers/helpers";
 
 const tokenAddress = USDC_POLYGON_ADDRESS;
-const reference = "0x00000000000000000000000000000000000000006304ca0d2f5acf6d69b3c58e";
+const reference = "6304ca0d2f5acf6d69b3c58e";
 const DUMP_ADDRESS = "0x1000000000000000000000000000000000000000";
 
 describe("SpritzPay", function () {
@@ -63,7 +68,7 @@ describe("SpritzPay", function () {
       recipient.address,
       QUICKSWAP_ROUTER_POLYGON_ADDRESS,
       WETH.address,
-      [USDC_POLYGON_ADDRESS],
+      [USDC_POLYGON_ADDRESS, MIMATIC_POLYGON_ADDRESS, USDT_POLYGON_ADDRESS, DAI_POLYGON_ADDRESS],
     ])) as SpritzPayV1;
     await spritzPay.deployed();
     deadline = await getDeadline();
@@ -99,7 +104,9 @@ describe("SpritzPay", function () {
       const paymentAmount = 100000;
       await usdc.connect(usdcWhale).approve(spritzPay.address, paymentAmount);
 
-      await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, paymentAmount, reference))
+      await expect(
+        spritzPay.connect(usdcWhale).payWithToken(tokenAddress, paymentAmount, formatPaymentReference(reference)),
+      )
         .to.emit(spritzPay, "Payment")
         .withArgs(
           recipient.address,
@@ -129,8 +136,7 @@ describe("SpritzPay", function () {
     before(() => {
       sdk = new SpritzPaySDK({
         network: Network.Polygon,
-        //@ts-ignore
-        provider: admin.provider,
+        provider: admin.provider! as BaseProvider,
         staging: true,
       });
     });
@@ -140,50 +146,44 @@ describe("SpritzPay", function () {
       await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
       await spritzPay.pause();
 
-      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
+      const { args } = await sdk.getPaymentArgs(WBTC.address, 10, reference);
 
       await expect(
-        spritzPay
-          .connect(defiUser)
-          .payWithSwap(
-            [bestTrade.path[0], bestTrade.path[1]],
-            bestTrade.amountInMax,
-            bestTrade.amountOut,
-            reference,
-            deadline,
-          ),
+        //@ts-ignore
+        spritzPay.connect(defiUser).payWithSwap(...args),
       ).to.be.revertedWith("Pausable: paused");
     });
 
     it("should swap token for token", async () => {
       const { args } = await sdk.getPaymentArgs(WBTC.address, 10, reference);
-      const tokenBAddress = args.path[args.path.length - 1];
+
+      const tokenBAddress = args[0][args[0].length - 1];
 
       await clearBalance(tokenBAddress, recipient);
 
       const [wbtcTokenContract, tokenBContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS, tokenBAddress]);
       await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
 
-      await spritzPay.connect(defiUser).payWithSwap(args.path, args.amountInMax, args.amountOut, reference, deadline);
+      //@ts-ignore
+      await spritzPay.connect(defiUser).payWithSwap(...args);
 
       const recipientBalanceAfter = await tokenBContract.balanceOf(recipient.address);
-      expect(recipientBalanceAfter).to.eq(args.amountOut);
+      expect(recipientBalanceAfter).to.eq(args[2]);
     });
 
     it("should swap native for token", async () => {
-      const { args } = await sdk.getPaymentArgs(WMATIC.address, 10, reference);
-      const tokenBAddress = args.path[args.path.length - 1];
+      const { args } = await sdk.getPaymentArgs(NATIVE_ZERO_ADDRESS, 1, reference);
+      const tokenBAddress = args[0][args[0].length - 1];
 
       await clearBalance(tokenBAddress, recipient);
 
-      const [tokenBContract] = await getERC20Contracts([args.path[args.path.length - 1]]);
+      const [tokenBContract] = await getERC20Contracts([tokenBAddress]);
 
-      await spritzPay.connect(defiUser).payWithSwap(args.path, args.amountInMax, args.amountOut, reference, deadline, {
-        value: args.amountInMax,
-      });
+      //@ts-ignore
+      await spritzPay.connect(defiUser).payWithSwap(...args);
 
       const recipientBalanceAfter = await tokenBContract.balanceOf(recipient.address);
-      expect(recipientBalanceAfter).to.eq(args.amountOut);
+      expect(recipientBalanceAfter).to.eq(args[2]);
     });
   });
 
