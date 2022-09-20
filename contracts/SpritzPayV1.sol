@@ -55,9 +55,10 @@ contract SpritzPayV1 is
         address _admin,
         address _paymentRecipient,
         address _swapTarget,
-        address _wrappedNative
+        address _wrappedNative,
+        address[] calldata _acceptedTokens
     ) public virtual initializer {
-        __SpritzPayStorage_init(_admin, _paymentRecipient, _swapTarget, _wrappedNative);
+        __SpritzPayStorage_init(_admin, _paymentRecipient, _swapTarget, _wrappedNative, _acceptedTokens);
         __Pausable_init();
         __AccessControlEnumerable_init();
         __ReentrancyGuard_init();
@@ -73,7 +74,7 @@ contract SpritzPayV1 is
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference
-    ) external whenNotPaused {
+    ) external whenNotPaused onlyAcceptedToken(paymentTokenAddress) {
         emit Payment(
             _paymentRecipient,
             msg.sender,
@@ -105,6 +106,11 @@ contract SpritzPayV1 is
     ) external payable whenNotPaused nonReentrant {
         address sourceTokenAddress = path[0];
         address paymentTokenAddress = path[path.length - 1];
+
+        if(!isAcceptedToken(paymentTokenAddress)) {
+            revert NonAcceptedToken(paymentTokenAddress);
+        }
+
         IERC20Upgradeable sourceToken = IERC20Upgradeable(sourceTokenAddress);
         bool isNativeSwap = sourceTokenAddress == _wrappedNative;
 

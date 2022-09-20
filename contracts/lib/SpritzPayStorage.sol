@@ -4,23 +4,55 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+
 
 contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
+
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+
     /**
      * @dev Emitted when the payment recipient has been changed
      */
     event PaymentRecipientChanged(address recipient, address sender);
 
     /**
+     * @dev Emitted when an accepted payment token has been added
+     */
+    event PaymentTokenAdded(address token);
+
+    /**
+     * @dev Emitted when an accepted payment token has been removed
+     */
+    event PaymentTokenRemoved(address token);
+
+    /**
      * @notice Thrown when setting one of our stored addresses to zero
      */
     error SetZeroAddress();
+
+    /**
+     * @notice Thrown when paying with unrecognized token
+     */
+    error NonAcceptedToken(address token);
 
     address internal _paymentRecipient;
     address internal _swapTarget;
     address internal _wrappedNative;
 
+    /// @notice List of all accepted payment tokens
+    EnumerableSetUpgradeable.AddressSet internal _acceptedPaymentTokens;
+
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+
+    modifier onlyAcceptedToken(address paymentToken) {
+        if(!_acceptedPaymentTokens.contains(paymentToken)){
+             revert NonAcceptedToken(paymentToken);
+        }
+        _;
+    }
+
 
     /**
      * @dev Initializes the contract
@@ -29,13 +61,17 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
         address newAdmin,
         address newPaymentRecipient,
         address newSwapTarget,
-        address newWrappedNative
+        address newWrappedNative,
+        address[] calldata acceptedTokens
     ) internal onlyInitializing {
         _setupRole(DEFAULT_ADMIN_ROLE, newAdmin);
         _setupRole(PAUSER_ROLE, newAdmin);
         _setPaymentRecipient(newPaymentRecipient);
         _setSwapTarget(newSwapTarget);
         _setWrappedNative(newWrappedNative);
+        for(uint i = 0; i < acceptedTokens.length; i++) {
+            _addPaymentToken(acceptedTokens[i]);
+        }
     }
 
     /**
@@ -77,10 +113,37 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
         _wrappedNative = newWrappedNative;
     }
 
+
     /**
-     * @dev This empty reserved space is put in place to allow future versions to add new
-     * variables without shifting down storage in the inheritance chain.
-     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     * @dev Get all accepted payment tokens
+     * @return Whether this payment token is accepted
      */
-    uint256[46] private __gap;
+    function isAcceptedToken(address tokenAddress) internal view returns (bool) {
+        return _acceptedPaymentTokens.contains(tokenAddress);
+    }
+
+    /**
+     * @dev Get all accepted payment tokens
+     * @return An array of the unique token addresses
+     */
+    function getAcceptedPaymentTokens() external view returns (address[] memory) {
+        return _acceptedPaymentTokens.values();
+    }
+
+    /**
+     * @dev Adds an accepted payment token
+     */
+    function _addPaymentToken(address newToken) internal virtual {
+        _acceptedPaymentTokens.add(newToken);
+        emit PaymentTokenAdded(newToken);
+    }
+
+    /**
+     * @dev Adds an accepted payment token
+     */
+    function _removePaymentToken(address newToken) internal virtual {
+        _acceptedPaymentTokens.remove(newToken);
+        emit PaymentTokenRemoved(newToken);
+    }
+
 }

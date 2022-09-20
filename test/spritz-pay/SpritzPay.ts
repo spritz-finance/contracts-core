@@ -63,6 +63,7 @@ describe("SpritzPay", function () {
       recipient.address,
       QUICKSWAP_ROUTER_POLYGON_ADDRESS,
       WETH.address,
+      [USDC_POLYGON_ADDRESS],
     ])) as SpritzPayV1;
     await spritzPay.deployed();
     deadline = await getDeadline();

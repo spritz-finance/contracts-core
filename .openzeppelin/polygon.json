@@ -27,47 +27,47 @@
     },
     {
       "address": "0x72b46c86aA67f2aBa435414f410bb48300C064Bf",
-      "txHash": "0xa8ef831ab9799e3e34dbf6cc5f0f6cc2e99809c0e0392e403de83420ce3e1387",
+      "txHash": "0x04b52419235717d054e109614bcb55982ec43c402a0069c10f9a36e9f5194847",
       "kind": "transparent"
     },
     {
       "address": "0xdB52E4853b6A40D2972E6797E0BDBDb3eB761966",
-      "txHash": "0xe2f6bcbea88845e0ec58dcefc43da5c2bf9e9b5edbede808c9ab9db42e082add",
+      "txHash": "0xfca3d088cd01a56021c088b1bd39f2da454ba25dd169a7a8e7c37765b881d072",
       "kind": "transparent"
     },
     {
       "address": "0xFb3A7D4cdA276f3Ed98E4ACA2D6318BCd9751859",
-      "txHash": "0x3baca2d7c21c2811d4d8dff4eba039f57c1764cd1d12fbbb495353623ec39024",
+      "txHash": "0x2624da22db69e99c0c02517686941cbed0ff569aa5da690ad8198b163d2c143c",
       "kind": "transparent"
     },
     {
       "address": "0xe14EbF1e8e8c39C1cf075fe1582f54392C97d8FE",
-      "txHash": "0x1b5b84e8652dee2346af1eaf661c4a0ad8d13eb77a30111d9d277853967d487f",
+      "txHash": "0xa2f1bf3998fe8745af338c364d55f075e38286f46fbd9118975b1bd9f5f187b2",
       "kind": "transparent"
     },
     {
       "address": "0x6d824682aA66da4e6738c6f3e16cC15fe9ce6F79",
-      "txHash": "0x98e6305ddd96ca07a0eaf173b66ee46b83759dd1787385315f975e04a8d9b5b7",
+      "txHash": "0x23a011a6f6a352b264eb9b71661a49420792f8710c649c86f00dfec8bb63917b",
       "kind": "transparent"
     },
     {
       "address": "0xc9fb11FEEbf439cEb7E04D94FDd4A0314F01c597",
-      "txHash": "0x2b9a16afdb3132ca0e919075555bc90fe1e507be9a8199836124e8d1b906dd9b",
+      "txHash": "0xc03be85c62e4492ad8b4cf66a3a8db499b1faddb17105a337f9f42d215873f3a",
       "kind": "transparent"
     },
     {
       "address": "0x406e5D7dDaA4029eB8B957aD7677c63e15c28AC7",
-      "txHash": "0x76008936d13f81406ec0804cadb65fc941f93f4b26c433a4c340d0c730da2965",
+      "txHash": "0x8e69b709dd1c25100728d8c6aa5f6f8916c38dbea80dc99f95709e2496afa565",
       "kind": "transparent"
     },
     {
       "address": "0x2EeA9517B018B2f63072a9729ceC3EE524809460",
-      "txHash": "0xfa75a3fd56de832e8e872290f2b5bb4988459a03a0d8045239e5d15ec5648e6e",
+      "txHash": "0x9fbb5368fb19b09ed804eae26151c2699ed94a8752b74f7d99fef4581674667d",
       "kind": "transparent"
     },
     {
       "address": "0x1EC66e52D13c18809F023948f1ae053025D2c969",
-      "txHash": "0xc1a673092b7c8705391246b1bf9376bad567ea8e366c71472c23bfeec688c395",
+      "txHash": "0x9ffdd44223d6ab5f3e95d4b3a6529b358f771258dcd70dac528e42495454dd22",
       "kind": "transparent"
     }
   ],
@@ -789,9 +789,9 @@
         }
       }
     },
-    "14d7e307aa19910117ccf4b66ec105667d0d4db798f21efee106ce997368f359": {
+    "50c5180b929baffbfcf7850d06e8ff8db190c9fe6d84fb193034dfa05ede3d57": {
       "address": "0xB5D6528752d60E23137fe088380dA24BDe347eb3",
-      "txHash": "0x045eab2f3f28818723b0827dea541587812f1653f0fcd2806e04ad208784db5c",
+      "txHash": "0x53ac427530aaca141a5c4f42b0f1a220a117325e95bee63d213598ae639eba21",
       "layout": {
         "storage": [
           {
@@ -897,7 +897,7 @@
             "slot": "301",
             "type": "t_address",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:19"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:39"
           },
           {
             "label": "_swapTarget",
@@ -905,7 +905,7 @@
             "slot": "302",
             "type": "t_address",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:20"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:40"
           },
           {
             "label": "_wrappedNative",
@@ -913,15 +913,15 @@
             "slot": "303",
             "type": "t_address",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:21"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:41"
           },
           {
-            "label": "__gap",
+            "label": "_acceptedPaymentTokens",
             "offset": 0,
             "slot": "304",
-            "type": "t_array(t_uint256)46_storage",
+            "type": "t_struct(AddressSet)2193_storage",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:85"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:44"
           }
         ],
         "types": {
@@ -932,10 +932,6 @@
           "t_array(t_bytes32)dyn_storage": {
             "label": "bytes32[]",
             "numberOfBytes": "32"
-          },
-          "t_array(t_uint256)46_storage": {
-            "label": "uint256[46]",
-            "numberOfBytes": "1472"
           },
           "t_array(t_uint256)49_storage": {
             "label": "uint256[49]",
