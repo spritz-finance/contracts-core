@@ -897,7 +897,7 @@
             "slot": "301",
             "type": "t_address",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:18"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:19"
           },
           {
             "label": "_swapTarget",
@@ -905,7 +905,7 @@
             "slot": "302",
             "type": "t_address",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:19"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:20"
           },
           {
             "label": "_wrappedNative",
@@ -913,7 +913,7 @@
             "slot": "303",
             "type": "t_address",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:20"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:21"
           },
           {
             "label": "__gap",
@@ -921,7 +921,7 @@
             "slot": "304",
             "type": "t_array(t_uint256)46_storage",
             "contract": "SpritzPayStorage",
-            "src": "contracts\\lib\\SpritzPayStorage.sol:84"
+            "src": "contracts\\lib\\SpritzPayStorage.sol:85"
           }
         ],
         "types": {
