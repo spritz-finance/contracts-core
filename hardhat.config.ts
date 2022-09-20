@@ -5,6 +5,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import { config as dotenvConfig } from "dotenv";
 import "hardhat-abi-exporter";
+import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
 import { HardhatUserConfig } from "hardhat/config";
@@ -167,6 +168,13 @@ const config: HardhatUserConfig = {
     spacing: 2,
     pretty: true,
     // format: "minimal",
+  },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
+    only: ["Spritz.*"],
   },
 };
 
