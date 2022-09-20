@@ -71,7 +71,11 @@
     "ethers": "^5.7.0",
     "fs-extra": "^10.1.0",
     "hardhat": "^2.10.1",
+    "hardhat-abi-exporter": "^2.10.0",
+    "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-spdx-license-identifier": "^2.0.3",
+    "hardhat-tracer": "^1.1.0-rc.9",
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3",
     "lodash": "^4.17.21",
@@ -106,5 +110,6 @@
   "packageManager": "yarn@3.2.1",
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "license": "UNLICENSED"
 }
