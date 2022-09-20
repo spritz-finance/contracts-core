@@ -41,7 +41,7 @@ contract SpritzPayV1 is
     event Payment(
         address to,
         address indexed from,
-        address sourceToken,
+        address indexed sourceToken,
         uint256 sourceTokenAmount,
         address paymentToken,
         uint256 paymentTokenAmount,
