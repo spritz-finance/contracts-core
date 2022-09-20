@@ -4,13 +4,16 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
-error SetZeroAddress();
-
 contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
     /**
      * @dev Emitted when the payment recipient has been changed
      */
     event PaymentRecipientChanged(address recipient, address sender);
+
+    /**
+     * @notice Thrown when setting one of our stored addresses to zero
+     */
+    error SetZeroAddress();
 
     address internal _paymentRecipient;
     address internal _swapTarget;

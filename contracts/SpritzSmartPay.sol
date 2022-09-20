@@ -4,12 +4,12 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import "./lib/SafeERC20.sol";
 import "./lib/SubscriptionChargeDate.sol";
 
 contract SpritzSmartPay is Context, Pausable, Ownable {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using SubscriptionChargeDate for uint256;
@@ -320,13 +320,8 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
         bytes32 subscriptionId,
         uint256 amount
     ) private {
-        bool success = safeTransferToken(subscription.paymentToken, subscription.owner, address(this), amount);
-        if (!success)
-            revert ChargeSubscriptionFailed({
-                owner: subscription.owner,
-                subscriptionId: subscriptionId,
-                amount: amount
-            });
+        IERC20Upgradeable token = IERC20Upgradeable(subscription.paymentToken);
+        token.safeTransferFrom(subscription.owner, address(this), amount);
     }
 
     /**
@@ -335,28 +330,10 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      * @param amount The amount of the outgoing payment
      */
     function checkSpirtzPayApproval(address token, uint256 amount) private {
-        IERC20 paymentToken = IERC20(token);
+        IERC20Upgradeable paymentToken = IERC20Upgradeable(token);
         if (paymentToken.allowance(address(this), SPRITZ_PAY_ADDRESS) < amount) {
             paymentToken.safeApprove(SPRITZ_PAY_ADDRESS, 2**256 - 1);
         }
-    }
-
-    /**
-     * @notice Execute a safe ERC-20 token transfer
-     * @param token The address of the ERC-20 token
-     * @param from The wallet to withdraw from
-     * @param to The recipient of the transfer
-     * @param amount The amount of the token to be transferred
-     * @return transferSuccess Whether or not the transfer succeeded
-     */
-    function safeTransferToken(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    ) private returns (bool transferSuccess) {
-        IERC20 erc20 = IERC20(token);
-        transferSuccess = erc20.safeTransferFrom(from, to, amount);
     }
 
     /*
