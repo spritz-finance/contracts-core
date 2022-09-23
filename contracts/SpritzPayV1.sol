@@ -192,4 +192,12 @@ contract SpritzPayV1 is
     function setPaymentRecipient(address newPaymentRecipient) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPaymentRecipient(newPaymentRecipient);
     }
+
+    function addPaymentToken(address newToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _addPaymentToken(newToken);
+    }
+
+    function removePaymentToken(address newToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _removePaymentToken(newToken);
+    }
 }
