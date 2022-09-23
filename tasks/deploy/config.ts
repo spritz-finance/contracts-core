@@ -4,6 +4,7 @@ import {
   ACCEPTED_STABLECOINS_POLYGON,
   ADMIN_STAGING_POLYGON,
   QUICKSWAP_ROUTER_POLYGON_ADDRESS,
+  SPRITZPAY_STAGING_POLYGON_ADDRESS,
   SPRITZ_TREASURY_WALLET,
   TEAM_WALLET_POLYGON,
   WMATIC_POLYGON_ADDRESS,
@@ -12,7 +13,7 @@ import {
 export const contractConfig: Record<string, Record<string, { proxy: string; args: any[] }>> = {
   staging: {
     "polygon-mainnet": {
-      proxy: "0x6920328902dA977aE96424fE911dA23c7E28DBEe",
+      proxy: SPRITZPAY_STAGING_POLYGON_ADDRESS,
       args: [
         ADMIN_STAGING_POLYGON,
         TEAM_WALLET_POLYGON,
@@ -24,7 +25,7 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
   },
   production: {
     "polygon-mainnet": {
-      proxy: "",
+      proxy: "", //TODO:
       args: [
         ADMIN_STAGING_POLYGON, //TODO: change to admin multisig
         SPRITZ_TREASURY_WALLET,
