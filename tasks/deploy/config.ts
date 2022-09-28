@@ -2,8 +2,9 @@ import { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
 
 import {
   ACCEPTED_STABLECOINS_POLYGON,
-  ADMIN_STAGING_POLYGON,
+  ADMIN_POLYGON,
   QUICKSWAP_ROUTER_POLYGON_ADDRESS,
+  SPRITZPAY_POLYGON_ADDRESS,
   SPRITZPAY_STAGING_POLYGON_ADDRESS,
   SPRITZ_TREASURY_WALLET,
   TEAM_WALLET_POLYGON,
@@ -15,7 +16,7 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
     "polygon-mainnet": {
       proxy: SPRITZPAY_STAGING_POLYGON_ADDRESS,
       args: [
-        ADMIN_STAGING_POLYGON,
+        ADMIN_POLYGON,
         TEAM_WALLET_POLYGON,
         QUICKSWAP_ROUTER_POLYGON_ADDRESS,
         WMATIC_POLYGON_ADDRESS,
@@ -25,9 +26,9 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
   },
   production: {
     "polygon-mainnet": {
-      proxy: "", //TODO:
+      proxy: SPRITZPAY_POLYGON_ADDRESS,
       args: [
-        ADMIN_STAGING_POLYGON, //TODO: change to admin multisig
+        ADMIN_POLYGON,
         SPRITZ_TREASURY_WALLET,
         QUICKSWAP_ROUTER_POLYGON_ADDRESS,
         WMATIC_POLYGON_ADDRESS,

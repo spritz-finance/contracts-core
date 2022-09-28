@@ -126,7 +126,7 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
      * @dev Get all accepted payment tokens
      * @return An array of the unique token addresses
      */
-    function getAcceptedPaymentTokens() external view returns (address[] memory) {
+    function acceptedPaymentTokens() external view returns (address[] memory) {
         return _acceptedPaymentTokens.values();
     }
 
