@@ -1,7 +1,7 @@
 {
   "name": "@spritz-finance/contract-core",
   "description": "Core contracts for Spritz payment modules",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "author": {
     "name": "Spritz Finance",
     "url": "https://github.com/spritz-finance"
@@ -18,12 +18,12 @@
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yml --ignore-path ./.eslintignore --ext .js,.ts .",
-    "postinstall": "husky install && DOTENV_CONFIG_PATH=./.env.example yarn typechain",
     "postpublish": "pinst --enable",
     "prepublishOnly": "pinst --disable",
     "prettier": "prettier --config ./.prettierrc.yml --write \"**/*.{js,json,md,sol,ts,yml}\"",
     "prettier:check": "prettier --check --config ./.prettierrc.yml \"**/*.{js,json,md,sol,ts,yml}\"",
     "test": "hardhat test",
+    "test:trace": "hardhat test --trace",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "slither": "slither ./contracts/SpritzPayV1.sol --solc-remaps '@openzeppelin=node_modules/@openzeppelin @uniswap=node_modules/@uniswap' --exclude naming-convention,external-function,low-level-calls --filter-paths node_modules",
     "toolbox": "docker run -it --rm -v /${PWD}/contracts:/src trailofbits/eth-security-toolbox"
@@ -46,6 +46,7 @@
     "@openzeppelin/hardhat-defender": "^1.8.0",
     "@openzeppelin/hardhat-upgrades": "^1.20.0",
     "@openzeppelin/test-helpers": "^0.5.15",
+    "@spritz-finance/sdk": "^0.1.6",
     "@trivago/prettier-plugin-sort-imports": "^3.3.0",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
@@ -70,7 +71,11 @@
     "ethers": "^5.7.0",
     "fs-extra": "^10.1.0",
     "hardhat": "^2.10.1",
+    "hardhat-abi-exporter": "^2.10.0",
+    "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-spdx-license-identifier": "^2.0.3",
+    "hardhat-tracer": "^1.1.0-rc.9",
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3",
     "lodash": "^4.17.21",
@@ -102,8 +107,8 @@
     "typescript",
     "typechain"
   ],
-  "packageManager": "yarn@3.2.1",
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "license": "UNLICENSED"
 }

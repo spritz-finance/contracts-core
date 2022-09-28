@@ -1,19 +1,24 @@
+import { BaseProvider } from "@ethersproject/providers";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { NATIVE_ZERO_ADDRESS, Network, SpritzPaySDK } from "@spritz-finance/sdk";
+import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 
 import { SpritzPayV1 } from "../../src/types";
-import { QUICKSWAP_ROUTER_POLYGON_ADDRESS } from "../../tasks/deploy/constants";
 import {
+  ACCEPTED_STABLECOINS_POLYGON,
+  QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   USDC_POLYGON_ADDRESS,
-  USDC_WHALE_ADDRESS,
-  WBTC_HOLDER_ADDRESS,
-  WBTC_POLYGON_ADDRESS,
-} from "../helpers/constants";
-import { WBTC, WETH, getBestStablecoinTradeForToken, getERC20Contracts } from "../helpers/helpers";
+  WMATIC_POLYGON_ADDRESS,
+} from "../../tasks/deploy/constants";
+import { USDC_WHALE_ADDRESS, WBTC_HOLDER_ADDRESS, WBTC_POLYGON_ADDRESS } from "../helpers/constants";
+import { getERC20Contracts } from "../helpers/helpers";
 
 const tokenAddress = USDC_POLYGON_ADDRESS;
-const reference = "0x00000000000000000000000000000000000000006304ca0d2f5acf6d69b3c58e";
+const reference = "6304ca0d2f5acf6d69b3c58e";
+const formattedReference = formatPaymentReference(reference);
 const DUMP_ADDRESS = "0x1000000000000000000000000000000000000000";
 
 describe("SpritzPay", function () {
@@ -23,7 +28,6 @@ describe("SpritzPay", function () {
   let admin: SignerWithAddress;
   let recipient: SignerWithAddress;
   let spritzPay: SpritzPayV1;
-  let deadline = 0;
 
   async function impersonateAccount(acctAddress: string) {
     await network.provider.request({
@@ -31,12 +35,6 @@ describe("SpritzPay", function () {
       params: [acctAddress],
     });
     return await ethers.getSigner(acctAddress);
-  }
-
-  async function getDeadline() {
-    const blockNumber = await ethers.provider.getBlockNumber();
-    const block = await ethers.provider.getBlock(blockNumber);
-    return block.timestamp + 300;
   }
 
   async function clearBalance(token: string, holder: SignerWithAddress) {
@@ -61,19 +59,18 @@ describe("SpritzPay", function () {
       admin.address,
       recipient.address,
       QUICKSWAP_ROUTER_POLYGON_ADDRESS,
-      WETH.address,
+      WMATIC_POLYGON_ADDRESS,
+      ACCEPTED_STABLECOINS_POLYGON,
     ])) as SpritzPayV1;
     await spritzPay.deployed();
-    deadline = await getDeadline();
     await clearBalance(tokenAddress, recipient);
   });
 
   describe("payWithToken", () => {
     it("reverts if the user has not given the contract allowance", async () => {
-      const paymentAmount = 100000;
-      await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, 100000, reference)).to.be.revertedWith(
-        `FailedTokenTransfer("${tokenAddress}", "${recipient.address}", ${paymentAmount})`,
-      );
+      await expect(
+        spritzPay.connect(usdcWhale).payWithToken(tokenAddress, 100000, formattedReference),
+      ).to.be.revertedWith(`ERC20: transfer amount exceeds allowance`);
     });
 
     it("transfers the payment amount to the recipient address", async () => {
@@ -84,7 +81,7 @@ describe("SpritzPay", function () {
       const balanceBefore = await usdc.balanceOf(usdcWhale.address);
       const recipientBalanceBefore = await usdc.balanceOf(recipient.address);
 
-      await spritzPay.connect(usdcWhale).payWithToken(tokenAddress, paymentAmount, reference);
+      await spritzPay.connect(usdcWhale).payWithToken(tokenAddress, paymentAmount, formattedReference);
 
       const balanceAfter = await usdc.balanceOf(usdcWhale.address);
       const recipientBalanceAfter = await usdc.balanceOf(recipient.address);
@@ -98,7 +95,7 @@ describe("SpritzPay", function () {
       const paymentAmount = 100000;
       await usdc.connect(usdcWhale).approve(spritzPay.address, paymentAmount);
 
-      await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, paymentAmount, reference))
+      await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, paymentAmount, formattedReference))
         .to.emit(spritzPay, "Payment")
         .withArgs(
           recipient.address,
@@ -107,7 +104,7 @@ describe("SpritzPay", function () {
           paymentAmount,
           tokenAddress,
           paymentAmount,
-          reference,
+          formattedReference,
         );
     });
 
@@ -116,73 +113,90 @@ describe("SpritzPay", function () {
       const paymentAmount = 100000;
       await usdc.connect(usdcWhale).approve(spritzPay.address, paymentAmount);
       await spritzPay.connect(admin).pause();
-      await expect(spritzPay.connect(usdcWhale).payWithToken(tokenAddress, 100000, reference)).to.be.revertedWith(
-        "Pausable: paused",
-      );
+      await expect(
+        spritzPay.connect(usdcWhale).payWithToken(tokenAddress, 100000, formattedReference),
+      ).to.be.revertedWith("Pausable: paused");
     });
   });
 
   describe("payWithSwap", () => {
+    let sdk: SpritzPaySDK;
+
+    before(() => {
+      sdk = new SpritzPaySDK({
+        network: Network.Polygon,
+        provider: admin.provider as BaseProvider,
+        staging: true,
+      });
+    });
+
     it("reverts if the contract has been paused", async () => {
       const [wbtcTokenContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS]);
       await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
       await spritzPay.pause();
 
-      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
+      const { args } = await sdk.getPaymentArgs(WBTC_POLYGON_ADDRESS, 10, reference);
 
       await expect(
-        spritzPay
-          .connect(defiUser)
-          .payWithSwap(
-            bestTrade.path[0],
-            bestTrade.amountInMax,
-            bestTrade.path[1],
-            bestTrade.amountOut,
-            reference,
-            deadline,
-          ),
+        spritzPay.connect(defiUser).payWithSwap(...(args as Parameters<SpritzPayV1["functions"]["payWithSwap"]>)),
       ).to.be.revertedWith("Pausable: paused");
     });
 
-    it("should swap token for token", async () => {
-      const bestTrade = await getBestStablecoinTradeForToken(WBTC, 10);
+    it("should swap token for token and emit a payment event", async () => {
+      const { args } = await sdk.getPaymentArgs(WBTC_POLYGON_ADDRESS, 10, reference);
 
-      const [wbtcTokenContract, tokenBContract] = await getERC20Contracts([
-        WBTC_POLYGON_ADDRESS,
-        bestTrade.trade.route.path[1].address,
-      ]);
+      const tokenBAddress = args[0][args[0].length - 1];
+
+      await clearBalance(tokenBAddress, recipient);
+
+      const [wbtcTokenContract, tokenBContract] = await getERC20Contracts([WBTC_POLYGON_ADDRESS, tokenBAddress]);
       await wbtcTokenContract.connect(defiUser).approve(spritzPay.address, 1000000000000000);
 
-      await spritzPay
+      const result = await spritzPay
         .connect(defiUser)
-        .payWithSwap(
-          bestTrade.path[0],
-          bestTrade.amountInMax,
-          bestTrade.path[1],
-          bestTrade.amountOut,
-          reference,
-          deadline,
-        );
+        .payWithSwap(...(args as Parameters<SpritzPayV1["functions"]["payWithSwap"]>));
 
       const recipientBalanceAfter = await tokenBContract.balanceOf(recipient.address);
-      expect(recipientBalanceAfter).to.eq(bestTrade.amountOut);
+      expect(recipientBalanceAfter).to.eq(args[2]);
+
+      await expect(result)
+        .to.emit(spritzPay, "Payment")
+        .withArgs(
+          recipient.address,
+          defiUser.address,
+          args[0][0],
+          anyValue,
+          tokenBAddress,
+          args[2],
+          formattedReference,
+        );
     });
 
-    it("should swap native for token", async () => {
-      const bestTrade = await getBestStablecoinTradeForToken(WETH, 5);
+    it("should swap native for token and emit an event", async () => {
+      const { args } = await sdk.getPaymentArgs(NATIVE_ZERO_ADDRESS, 1, reference);
+      const tokenBAddress = args[0][args[0].length - 1];
 
-      await spritzPay
+      await clearBalance(tokenBAddress, recipient);
+
+      const [tokenBContract] = await getERC20Contracts([tokenBAddress]);
+
+      const result = await spritzPay
         .connect(defiUser)
-        .payWithSwap(
-          bestTrade.path[0],
-          bestTrade.amountInMax,
-          bestTrade.path[1],
-          bestTrade.amountOut,
-          reference,
-          deadline,
-          {
-            value: bestTrade.amountInMax,
-          },
+        .payWithSwap(...(args as Parameters<SpritzPayV1["functions"]["payWithSwap"]>));
+
+      const recipientBalanceAfter = await tokenBContract.balanceOf(recipient.address);
+      expect(recipientBalanceAfter).to.eq(args[2]);
+
+      await expect(result)
+        .to.emit(spritzPay, "Payment")
+        .withArgs(
+          recipient.address,
+          defiUser.address,
+          args[0][0],
+          anyValue,
+          tokenBAddress,
+          args[2],
+          formattedReference,
         );
     });
   });

@@ -1,15 +1,16 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import "./lib/SafeERC20.sol";
 import "./lib/SubscriptionChargeDate.sol";
 
 contract SpritzSmartPay is Context, Pausable, Ownable {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using SubscriptionChargeDate for uint256;
@@ -123,7 +124,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      * @dev Throws if called by any account other than the auto task wallet.
      */
     modifier onlyAutoTaskBot() {
-        _checkAutoTaskAddress(_msgSender());
+        _checkAutoTaskAddress(msg.sender);
         _;
     }
 
@@ -132,7 +133,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      */
     modifier checksActiveSubscriptions() {
         _;
-        _checkActiveSubscriptions(_msgSender());
+        _checkActiveSubscriptions(msg.sender);
     }
 
     /**
@@ -198,12 +199,12 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      */
     function deactivateSubscription(bytes32 subscriptionId) external checksActiveSubscriptions {
         Subscription storage subscription = subscriptions[subscriptionId];
-        if (subscription.owner != _msgSender()) revert UnauthorizedExecutor(_msgSender());
+        if (subscription.owner != msg.sender) revert UnauthorizedExecutor(msg.sender);
 
-        userSubscriptions[_msgSender()].remove(subscriptionId);
+        userSubscriptions[msg.sender].remove(subscriptionId);
         delete subscriptions[subscriptionId];
 
-        emit SubscriptionDeactivated(_msgSender(), subscriptionId);
+        emit SubscriptionDeactivated(msg.sender, subscriptionId);
     }
 
     /**
@@ -223,7 +224,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
         SubscriptionCadence cadence
     ) public checksActiveSubscriptions {
         unchecked {
-            subscriptionNonce[_msgSender()] += 1;
+            subscriptionNonce[msg.sender] += 1;
         }
 
         Subscription memory subscription = Subscription({
@@ -231,7 +232,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
             paymentAmount: paymentAmount,
             paymentCount: 0,
             totalPayments: totalPayments,
-            owner: _msgSender(),
+            owner: msg.sender,
             paymentToken: paymentToken,
             startTime: startTime,
             lastPaymentTimestamp: 0,
@@ -244,9 +245,9 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
         // store subscription
         subscriptions[subscriptionId] = subscription;
         // attribute subscription to user
-        userSubscriptions[_msgSender()].add(subscriptionId);
+        userSubscriptions[msg.sender].add(subscriptionId);
 
-        emit SubscriptionCreated(_msgSender(), subscriptionId);
+        emit SubscriptionCreated(msg.sender, subscriptionId);
     }
 
     /**
@@ -298,7 +299,7 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      * @dev Compute a collision-resistant id for the subscription
      */
     function newSubscriptionId() private view returns (bytes32) {
-        return keccak256(abi.encodePacked(_msgSender(), subscriptionNonce[_msgSender()]));
+        return keccak256(abi.encodePacked(msg.sender, subscriptionNonce[msg.sender]));
     }
 
     // need to check this
@@ -320,13 +321,8 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
         bytes32 subscriptionId,
         uint256 amount
     ) private {
-        bool success = safeTransferToken(subscription.paymentToken, subscription.owner, address(this), amount);
-        if (!success)
-            revert ChargeSubscriptionFailed({
-                owner: subscription.owner,
-                subscriptionId: subscriptionId,
-                amount: amount
-            });
+        IERC20Upgradeable token = IERC20Upgradeable(subscription.paymentToken);
+        token.safeTransferFrom(subscription.owner, address(this), amount);
     }
 
     /**
@@ -335,28 +331,10 @@ contract SpritzSmartPay is Context, Pausable, Ownable {
      * @param amount The amount of the outgoing payment
      */
     function checkSpirtzPayApproval(address token, uint256 amount) private {
-        IERC20 paymentToken = IERC20(token);
+        IERC20Upgradeable paymentToken = IERC20Upgradeable(token);
         if (paymentToken.allowance(address(this), SPRITZ_PAY_ADDRESS) < amount) {
             paymentToken.safeApprove(SPRITZ_PAY_ADDRESS, 2**256 - 1);
         }
-    }
-
-    /**
-     * @notice Execute a safe ERC-20 token transfer
-     * @param token The address of the ERC-20 token
-     * @param from The wallet to withdraw from
-     * @param to The recipient of the transfer
-     * @param amount The amount of the token to be transferred
-     * @return transferSuccess Whether or not the transfer succeeded
-     */
-    function safeTransferToken(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    ) private returns (bool transferSuccess) {
-        IERC20 erc20 = IERC20(token);
-        transferSuccess = erc20.safeTransferFrom(from, to, amount);
     }
 
     /*

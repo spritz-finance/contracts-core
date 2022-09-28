@@ -20,13 +20,13 @@ task("deploy:SpritzPay")
     const proxy = await hre.upgrades.deployProxy(spritzPayStagingFactory, args);
     await proxy.deployed();
 
+    // console.log("Transferring proxyadmin ownership to ", args[0]);
+    // await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
+
     console.log("Proxy contract address: ", proxy.address);
 
     const implementationAddress = await getImplementationAddress(hre.ethers.provider, proxy.address);
     console.log("Implementation contract address", implementationAddress);
-
-    console.log("Transferring proxyadmin ownership to ", args[0]);
-    await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
 
     const implementationContract = await hre.ethers.getContractAt("SpritzPayV1", implementationAddress);
 

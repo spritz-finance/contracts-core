@@ -4,7 +4,11 @@ import "@openzeppelin/hardhat-defender";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import { config as dotenvConfig } from "dotenv";
+import "hardhat-abi-exporter";
+import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
+import "hardhat-spdx-license-identifier";
+import "hardhat-tracer";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
@@ -106,7 +110,8 @@ const config: HardhatUserConfig = {
       // accounts: [{
       //   privateKey
       // }],
-      chainId: chainIds.hardhat,
+      // chainId: chainIds.hardhat,
+      chainId: 137,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
     avalanche: getChainConfig("avalanche"),
@@ -136,7 +141,7 @@ const config: HardhatUserConfig = {
       // https://hardhat.org/hardhat-network/#solidity-optimizer-support
       optimizer: {
         enabled: true,
-        runs: 800,
+        runs: 200,
       },
     },
   },
@@ -150,6 +155,27 @@ const config: HardhatUserConfig = {
   defender: {
     apiKey: process.env.DEFENDER_TEAM_API_KEY!,
     apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY!,
+  },
+  spdxLicenseIdentifier: {
+    overwrite: true,
+    runOnCompile: true,
+  },
+  abiExporter: {
+    path: "./src/abi",
+    runOnCompile: true,
+    clear: true,
+    flat: true,
+    only: ["Spritz.*"],
+    spacing: 2,
+    pretty: true,
+    // format: "minimal",
+  },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
+    only: ["Spritz.*"],
   },
 };
 
