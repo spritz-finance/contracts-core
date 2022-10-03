@@ -2,8 +2,10 @@ import { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
 
 import {
   ACCEPTED_STABLECOINS_BSC,
+  ACCEPTED_STABLECOINS_MAINNET,
   ACCEPTED_STABLECOINS_POLYGON,
   ADMIN_BSC,
+  ADMIN_MAINNET,
   ADMIN_POLYGON,
   PANCAKESWAP_ROUTER_BSC_ADDRESS,
   QUICKSWAP_ROUTER_POLYGON_ADDRESS,
@@ -13,8 +15,11 @@ import {
   SPRITZPAY_STAGING_POLYGON_ADDRESS,
   SPRITZ_TREASURY_WALLET,
   TEAM_WALLET_BSC,
+  TEAM_WALLET_MAINNET,
   TEAM_WALLET_POLYGON,
+  UNISWAP_ROUTER_MAINNET_ADDRESS,
   WBNB_BSC_ADDRESS,
+  WETH_MAINNET_ADDRESS,
   WMATIC_POLYGON_ADDRESS,
 } from "./constants";
 
@@ -33,6 +38,16 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
     bsc: {
       proxy: SPRITZPAY_STAGING_BSC_ADDRESS,
       args: [ADMIN_BSC, TEAM_WALLET_BSC, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS, ACCEPTED_STABLECOINS_BSC],
+    },
+    mainnet: {
+      proxy: "",
+      args: [
+        ADMIN_MAINNET,
+        TEAM_WALLET_MAINNET,
+        UNISWAP_ROUTER_MAINNET_ADDRESS,
+        WETH_MAINNET_ADDRESS,
+        ACCEPTED_STABLECOINS_MAINNET,
+      ],
     },
   },
   production: {
@@ -54,6 +69,16 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
         PANCAKESWAP_ROUTER_BSC_ADDRESS,
         WBNB_BSC_ADDRESS,
         ACCEPTED_STABLECOINS_BSC,
+      ],
+    },
+    mainnet: {
+      proxy: "",
+      args: [
+        ADMIN_MAINNET,
+        SPRITZ_TREASURY_WALLET,
+        UNISWAP_ROUTER_MAINNET_ADDRESS,
+        WETH_MAINNET_ADDRESS,
+        ACCEPTED_STABLECOINS_MAINNET,
       ],
     },
   },

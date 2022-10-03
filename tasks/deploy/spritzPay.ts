@@ -17,11 +17,13 @@ task("deploy:SpritzPay")
 
     const spritzPayStagingFactory = await hre.ethers.getContractFactory("SpritzPayV1");
 
-    const proxy = await hre.upgrades.deployProxy(spritzPayStagingFactory, args);
+    const proxy = await hre.upgrades.deployProxy(spritzPayStagingFactory, args, {
+      timeout: 0,
+    });
     await proxy.deployed();
 
-    // console.log("Transferring proxyadmin ownership to ", args[0]);
-    // await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
+    console.log("Transferring proxyadmin ownership to ", args[0]);
+    await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
 
     console.log("Proxy contract address: ", proxy.address);
 

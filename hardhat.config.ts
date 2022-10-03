@@ -26,6 +26,7 @@ const privateKey: string | undefined = process.env.DEPLOYMENT_PRIVATE_KEY;
 const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
 const alchemyPolygonMainnetKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const alchemyOptimismKey: string | undefined = process.env.ALCHEMY_OPTIMISM_KEY;
+const alchemyMainnetKey: string | undefined = process.env.ALCHEMY_MAINNET_KEY;
 const alchemyPolygonMumbaiKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
 
@@ -49,6 +50,9 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
   switch (chain) {
     case "avalanche":
       jsonRpcUrl = "https://api.avax.network/ext/bc/C/rpc";
+      break;
+    case "mainnet":
+      jsonRpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${alchemyMainnetKey}`;
       break;
     case "bsc":
       jsonRpcUrl = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
