@@ -10,8 +10,10 @@ import {
   PANCAKESWAP_ROUTER_BSC_ADDRESS,
   QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   SPRITZPAY_BSC_ADDRESS,
+  SPRITZPAY_MAINNET_ADDRESS,
   SPRITZPAY_POLYGON_ADDRESS,
   SPRITZPAY_STAGING_BSC_ADDRESS,
+  SPRITZPAY_STAGING_MAINNET_ADDRESS,
   SPRITZPAY_STAGING_POLYGON_ADDRESS,
   SPRITZ_TREASURY_WALLET,
   TEAM_WALLET_BSC,
@@ -40,7 +42,7 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
       args: [ADMIN_BSC, TEAM_WALLET_BSC, PANCAKESWAP_ROUTER_BSC_ADDRESS, WBNB_BSC_ADDRESS, ACCEPTED_STABLECOINS_BSC],
     },
     mainnet: {
-      proxy: "",
+      proxy: SPRITZPAY_STAGING_MAINNET_ADDRESS,
       args: [
         ADMIN_MAINNET,
         TEAM_WALLET_MAINNET,
@@ -72,7 +74,7 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
       ],
     },
     mainnet: {
-      proxy: "",
+      proxy: SPRITZPAY_MAINNET_ADDRESS,
       args: [
         ADMIN_MAINNET,
         SPRITZ_TREASURY_WALLET,
