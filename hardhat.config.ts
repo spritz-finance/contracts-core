@@ -26,7 +26,10 @@ const privateKey: string | undefined = process.env.DEPLOYMENT_PRIVATE_KEY;
 const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
 const alchemyPolygonMainnetKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const alchemyOptimismKey: string | undefined = process.env.ALCHEMY_OPTIMISM_KEY;
+const alchemyMainnetKey: string | undefined = process.env.ALCHEMY_MAINNET_KEY;
 const alchemyPolygonMumbaiKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
+const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
+
 export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
 
 const chainIds = {
@@ -48,8 +51,11 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
     case "avalanche":
       jsonRpcUrl = "https://api.avax.network/ext/bc/C/rpc";
       break;
+    case "mainnet":
+      jsonRpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${alchemyMainnetKey}`;
+      break;
     case "bsc":
-      jsonRpcUrl = "https://bsc-dataseed1.binance.org";
+      jsonRpcUrl = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
       break;
     case "polygon-mainnet":
       jsonRpcUrl = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
@@ -133,15 +139,11 @@ const config: HardhatUserConfig = {
     version: "0.8.7",
     settings: {
       metadata: {
-        // Not including the metadata hash
-        // https://github.com/paulrberg/solidity-template/issues/31
         bytecodeHash: "none",
       },
-      // Disable the optimizer when debugging
-      // https://hardhat.org/hardhat-network/#solidity-optimizer-support
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 800,
       },
     },
   },
