@@ -1,3 +1,4 @@
+import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-defender";
@@ -6,8 +7,9 @@ import "@typechain/hardhat";
 import { config as dotenvConfig } from "dotenv";
 import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
-import "hardhat-gas-reporter";
+// import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
+import "hardhat-storage-layout";
 import "hardhat-tracer";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
@@ -118,6 +120,7 @@ const config: HardhatUserConfig = {
       // }],
       // chainId: chainIds.hardhat,
       chainId: 137,
+      blockGasLimit: 150_000_000,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
     avalanche: getChainConfig("avalanche"),

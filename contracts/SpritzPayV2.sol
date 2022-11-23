@@ -13,7 +13,7 @@ import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IWETH9.sol";
 
-import "./lib/SpritzPayStorage.sol";
+import "./lib/SpritzPayStorageV2.sol";
 
 /**
  * @title SpritzPayV2
@@ -24,7 +24,7 @@ contract SpritzPayV2 is
     PausableUpgradeable,
     AccessControlEnumerableUpgradeable,
     ReentrancyGuardUpgradeable,
-    SpritzPayStorage
+    SpritzPayStorageV2
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -207,6 +207,7 @@ contract SpritzPayV2 is
             IWETH9(sourceTokenAddress).deposit{ value: msg.value }();
         } else {
             //Transfer from user to our contract
+
             sourceToken.safeTransferFrom(msg.sender, address(this), sourceTokenAmountMax);
         }
 
@@ -269,6 +270,10 @@ contract SpritzPayV2 is
 
     function setPaymentRecipient(address newPaymentRecipient) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPaymentRecipient(newPaymentRecipient);
+    }
+
+    function setV3SwapTarget(address newSwapTarget) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setV3SwapTarget(newSwapTarget);
     }
 
     function addPaymentToken(address newToken) external onlyRole(DEFAULT_ADMIN_ROLE) {

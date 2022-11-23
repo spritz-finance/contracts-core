@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
-contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
+contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     /**
@@ -40,6 +40,8 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
 
     /// @notice List of all accepted payment tokens
     EnumerableSetUpgradeable.AddressSet internal _acceptedPaymentTokens;
+
+    address internal _v3SwapTarget;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
@@ -92,6 +94,14 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
     function _setSwapTarget(address newSwapTarget) internal virtual {
         if (newSwapTarget == address(0)) revert SetZeroAddress();
         _swapTarget = newSwapTarget;
+    }
+
+    /**
+     * @dev Sets a new address for the v3 swap target
+     */
+    function _setV3SwapTarget(address newSwapTarget) internal virtual {
+        if (newSwapTarget == address(0)) revert SetZeroAddress();
+        _v3SwapTarget = newSwapTarget;
     }
 
     /**
