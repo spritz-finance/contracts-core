@@ -6,9 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
-
 contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
-
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     /**
@@ -39,20 +37,19 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
     address internal _paymentRecipient;
     address internal _swapTarget;
     address internal _wrappedNative;
+    address internal _v3SwapTarget;
 
     /// @notice List of all accepted payment tokens
     EnumerableSetUpgradeable.AddressSet internal _acceptedPaymentTokens;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-
     modifier onlyAcceptedToken(address paymentToken) {
-        if(!_acceptedPaymentTokens.contains(paymentToken)){
-             revert NonAcceptedToken(paymentToken);
+        if (!_acceptedPaymentTokens.contains(paymentToken)) {
+            revert NonAcceptedToken(paymentToken);
         }
         _;
     }
-
 
     /**
      * @dev Initializes the contract
@@ -69,7 +66,7 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
         _setPaymentRecipient(newPaymentRecipient);
         _setSwapTarget(newSwapTarget);
         _setWrappedNative(newWrappedNative);
-        for(uint i = 0; i < acceptedTokens.length; i++) {
+        for (uint256 i = 0; i < acceptedTokens.length; i++) {
             _addPaymentToken(acceptedTokens[i]);
         }
     }
@@ -113,7 +110,6 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
         _wrappedNative = newWrappedNative;
     }
 
-
     /**
      * @dev Get all accepted payment tokens
      * @return Whether this payment token is accepted
@@ -145,5 +141,4 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
         _acceptedPaymentTokens.remove(newToken);
         emit PaymentTokenRemoved(newToken);
     }
-
 }
