@@ -33,8 +33,8 @@
     "test": "hardhat test",
     "test:trace": "hardhat test --trace",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
-    "slither": "slither ./contracts/SpritzPayV1.sol --solc-remaps '@openzeppelin=node_modules/@openzeppelin @uniswap=node_modules/@uniswap' --exclude naming-convention,external-function,low-level-calls --filter-paths node_modules",
-    "toolbox": "docker run -it --rm -v /${PWD}/contracts:/src trailofbits/eth-security-toolbox"
+    "slither": "slither ./contracts/SpritzPayV2.sol --solc-remaps '@openzeppelin=node_modules/@openzeppelin @uniswap=node_modules/@uniswap' --exclude naming-convention,external-function,low-level-calls --filter-paths node_modules",
+    "toolbox": "docker run -it --rm -v /${PWD}:/src trailofbits/eth-security-toolbox"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
@@ -54,7 +54,7 @@
     "@openzeppelin/hardhat-defender": "^1.8.0",
     "@openzeppelin/hardhat-upgrades": "^1.20.0",
     "@openzeppelin/test-helpers": "^0.5.15",
-    "@spritz-finance/sdk": "^0.1.20",
+    "@spritz-finance/sdk": "^0.1.23",
     "@trivago/prettier-plugin-sort-imports": "^3.3.0",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
@@ -76,7 +76,6 @@
     "dotenv": "^16.0.1",
     "eslint": "^8.21.0",
     "eslint-config-prettier": "^8.5.0",
-    "ethereum-waffle": "^3.4.4",
     "ethers": "^5.7.0",
     "fs-extra": "^10.1.0",
     "hardhat": "^2.10.1",

@@ -1,6 +1,7 @@
 [
   "error NonAcceptedToken(address)",
   "error SetZeroAddress()",
+  "error UnauthorizedExecutor(address)",
   "event Initialized(uint8)",
   "event PaymentRecipientChanged(address,address)",
   "event PaymentTokenAdded(address)",
