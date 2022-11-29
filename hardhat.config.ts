@@ -50,7 +50,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
   let jsonRpcUrl: string;
   switch (chain) {
     case "avalanche":
-      jsonRpcUrl = "https://api.avax.network/ext/bc/C/rpc";
+      jsonRpcUrl = `https://avalanche-mainnet.infura.io/v3/${infuraApiKey}`;
       break;
     case "mainnet":
       jsonRpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${alchemyMainnetKey}`;

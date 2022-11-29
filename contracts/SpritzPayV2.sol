@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IJoeRouter02.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "./interfaces/IWETH9.sol";
 
@@ -165,7 +165,7 @@ contract SpritzPayV2 is
 
         {
             //Execute the swap
-            IUniswapV2Router02 router = IUniswapV2Router02(_swapTarget);
+            IJoeRouter02 router = IJoeRouter02(_swapTarget);
             if (!isNativeSwap) {
                 amounts = router.swapTokensForExactTokens(
                     paymentTokenAmount,
@@ -175,7 +175,7 @@ contract SpritzPayV2 is
                     deadline
                 );
             } else {
-                amounts = router.swapETHForExactTokens{ value: msg.value }(
+                amounts = router.swapAVAXForExactTokens{ value: msg.value }(
                     paymentTokenAmount,
                     path,
                     _paymentRecipient,
