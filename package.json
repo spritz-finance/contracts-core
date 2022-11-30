@@ -25,6 +25,8 @@
     "upgrade-staging:mainnet": "hardhat upgrade:SpritzPay --network mainnet --env staging",
     "deploy-staging:optimism": "hardhat deploy:SpritzPayV2 --network optimism --env staging",
     "deploy-staging:arbitrum": "hardhat deploy:SpritzPayV2 --network arbitrum --env staging",
+    "deploy:optimism": "hardhat deploy:SpritzPayV2 --network optimism --env production",
+    "deploy:arbitrum": "hardhat deploy:SpritzPayV2 --network arbitrum --env production",
     "lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --config ./.eslintrc.yml --ignore-path ./.eslintignore --ext .js,.ts .",

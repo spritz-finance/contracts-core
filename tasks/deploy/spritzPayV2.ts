@@ -22,8 +22,8 @@ task("deploy:SpritzPayV2")
 
     console.log("Deployed contract to: ", proxy.address);
 
-    console.log("Transferring proxyadmin ownership to ", args[0]);
-    await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
+    // console.log("Transferring proxyadmin ownership to ", args[0]);
+    // await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
 
     console.log("Proxy contract address: ", proxy.address);
 
