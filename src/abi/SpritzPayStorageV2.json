@@ -21,5 +21,6 @@
   "function renounceRole(bytes32,address)",
   "function revokeRole(bytes32,address)",
   "function supportsInterface(bytes4) view returns (bool)",
-  "function swapTarget() view returns (address)"
+  "function swapTarget() view returns (address)",
+  "function v3SwapTarget() view returns (address)"
 ]

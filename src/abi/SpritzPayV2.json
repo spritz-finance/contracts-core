@@ -41,5 +41,6 @@
   "function setV3SwapTarget(address)",
   "function supportsInterface(bytes4) view returns (bool)",
   "function swapTarget() view returns (address)",
-  "function unpause()"
+  "function unpause()",
+  "function v3SwapTarget() view returns (address)"
 ]

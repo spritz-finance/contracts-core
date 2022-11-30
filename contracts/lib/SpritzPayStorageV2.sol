@@ -104,7 +104,6 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
      * @dev Sets a new address for the swap target
      */
     function _setSwapTarget(address newSwapTarget) internal virtual {
-        if (newSwapTarget == address(0)) revert SetZeroAddress();
         _swapTarget = newSwapTarget;
     }
 
@@ -112,7 +111,6 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
      * @dev Sets a new address for the v3 swap target
      */
     function _setV3SwapTarget(address newSwapTarget) internal virtual {
-        if (newSwapTarget == address(0)) revert SetZeroAddress();
         _v3SwapTarget = newSwapTarget;
     }
 
@@ -129,6 +127,13 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
      */
     function swapTarget() public view virtual returns (address) {
         return _swapTarget;
+    }
+
+    /**
+     * @dev Returns the address of the swap target
+     */
+    function v3SwapTarget() public view virtual returns (address) {
+        return _v3SwapTarget;
     }
 
     /**
