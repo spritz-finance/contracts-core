@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
-contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
+contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     /**
@@ -34,6 +34,12 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
      */
     error NonAcceptedToken(address token);
 
+    /**
+     * @notice Thrown when an unauthorised wallet tries to call a guarded method
+     * @param caller The wallet calling the guarded method
+     */
+    error UnauthorizedExecutor(address caller);
+
     address internal _paymentRecipient;
     address internal _swapTarget;
     address internal _wrappedNative;
@@ -41,12 +47,20 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
     /// @notice List of all accepted payment tokens
     EnumerableSetUpgradeable.AddressSet internal _acceptedPaymentTokens;
 
+    address internal _v3SwapTarget;
+    address internal _smartPay;
+
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     modifier onlyAcceptedToken(address paymentToken) {
         if (!_acceptedPaymentTokens.contains(paymentToken)) {
             revert NonAcceptedToken(paymentToken);
         }
+        _;
+    }
+
+    modifier onlySmartPay() {
+        if (msg.sender != _smartPay) revert UnauthorizedExecutor(msg.sender);
         _;
     }
 
@@ -90,8 +104,22 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
      * @dev Sets a new address for the swap target
      */
     function _setSwapTarget(address newSwapTarget) internal virtual {
-        if (newSwapTarget == address(0)) revert SetZeroAddress();
         _swapTarget = newSwapTarget;
+    }
+
+    /**
+     * @dev Sets a new address for the v3 swap target
+     */
+    function _setV3SwapTarget(address newSwapTarget) internal virtual {
+        _v3SwapTarget = newSwapTarget;
+    }
+
+    /**
+     * @dev Sets a new address for the smart pay contract
+     */
+    function _setSmartPay(address newSmartPay) internal virtual {
+        if (newSmartPay == address(0)) revert SetZeroAddress();
+        _smartPay = newSmartPay;
     }
 
     /**
@@ -99,6 +127,13 @@ contract SpritzPayStorage is Initializable, AccessControlEnumerableUpgradeable {
      */
     function swapTarget() public view virtual returns (address) {
         return _swapTarget;
+    }
+
+    /**
+     * @dev Returns the address of the swap target
+     */
+    function v3SwapTarget() public view virtual returns (address) {
+        return _v3SwapTarget;
     }
 
     /**

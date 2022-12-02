@@ -75,7 +75,7 @@ library SubscriptionChargeDate {
     function validMonthsSince(
         uint256 timestamp,
         uint256 refTimestamp,
-        uint128 paymentCount
+        uint256 paymentCount
     ) internal pure returns (bool) {
         Date memory date = toDate(timestamp);
         Date memory refDate = toDate(refTimestamp);
@@ -103,7 +103,7 @@ library SubscriptionChargeDate {
     function validWeeksSince(
         uint256 timestamp,
         uint256 refTimestamp,
-        uint128 paymentCount
+        uint256 paymentCount
     ) internal pure returns (bool) {
         uint256 dayOfWeek = getDayOfWeek(timestamp);
         uint256 refDayOfWeek = getDayOfWeek(refTimestamp);
@@ -122,7 +122,7 @@ library SubscriptionChargeDate {
     function validDaysSince(
         uint256 timestamp,
         uint256 refTimestamp,
-        uint128 paymentCount
+        uint256 paymentCount
     ) internal pure returns (bool) {
         uint256 hour = getHour(timestamp);
         uint256 refHour = getHour(refTimestamp);

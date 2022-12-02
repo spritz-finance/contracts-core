@@ -1,5 +1,5 @@
+import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-etherscan";
-import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-defender";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
@@ -8,6 +8,7 @@ import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
+// import "hardhat-storage-layout";
 import "hardhat-tracer";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
@@ -26,11 +27,13 @@ const privateKey: string | undefined = process.env.DEPLOYMENT_PRIVATE_KEY;
 const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
 const alchemyPolygonMainnetKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const alchemyOptimismKey: string | undefined = process.env.ALCHEMY_OPTIMISM_KEY;
+const alchemyArbitrumKey: string | undefined = process.env.ALCHEMY_ARBITRUM_KEY;
 const alchemyMainnetKey: string | undefined = process.env.ALCHEMY_MAINNET_KEY;
 const alchemyPolygonMumbaiKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
 
-export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
+// export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
+export const FORKING_URL = `https://opt-mainnet.g.alchemy.com/v2/khoRjoOTMnjpiCJQlemK5FHQbKcYVP3t`;
 
 const chainIds = {
   "arbitrum-mainnet": 42161,
@@ -47,6 +50,7 @@ const chainIds = {
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
   let jsonRpcUrl: string;
+
   switch (chain) {
     case "avalanche":
       jsonRpcUrl = "https://api.avax.network/ext/bc/C/rpc";
@@ -62,6 +66,9 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
       break;
     case "optimism":
       jsonRpcUrl = `https://opt-mainnet.g.alchemy.com/v2/${alchemyOptimismKey}`;
+      break;
+    case "arbitrum-mainnet":
+      jsonRpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyArbitrumKey}`;
       break;
     case "rinkeby":
       jsonRpcUrl = "https://eth-rinkeby.alchemyapi.io/v2/";
@@ -117,7 +124,9 @@ const config: HardhatUserConfig = {
       //   privateKey
       // }],
       // chainId: chainIds.hardhat,
-      chainId: 137,
+      // chainId: 137,
+      chainId: 10,
+      blockGasLimit: 150_000_000,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
     avalanche: getChainConfig("avalanche"),
@@ -143,7 +152,7 @@ const config: HardhatUserConfig = {
       },
       optimizer: {
         enabled: true,
-        runs: 800,
+        runs: 1000,
       },
     },
   },
