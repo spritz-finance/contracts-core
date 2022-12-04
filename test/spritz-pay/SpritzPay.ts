@@ -1,7 +1,4 @@
-import { BaseProvider } from "@ethersproject/providers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { NATIVE_ZERO_ADDRESS, Network, SpritzPaySDK } from "@spritz-finance/sdk";
 import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
@@ -9,15 +6,10 @@ import { ethers, network, upgrades } from "hardhat";
 import { SpritzPayV1 } from "../../src/types";
 import {
   ACCEPTED_STABLECOINS_AVALANCHE,
-  ACCEPTED_STABLECOINS_POLYGON,
-  QUICKSWAP_ROUTER_POLYGON_ADDRESS,
   TRADERJOUE_ROUTER_AVALANCHE_ADDRESS,
   USDC_AVALANCHE_ADDRESS,
-  USDC_POLYGON_ADDRESS,
   WAVAX_AVALANCHE_ADDRESS,
-  WMATIC_POLYGON_ADDRESS,
 } from "../../tasks/deploy/constants";
-import { USDC_WHALE_ADDRESS, WBTC_HOLDER_ADDRESS, WBTC_POLYGON_ADDRESS } from "../helpers/constants";
 import { getERC20Contracts } from "../helpers/helpers";
 
 const tokenAddress = USDC_AVALANCHE_ADDRESS;
@@ -56,7 +48,6 @@ describe("SpritzPay", function () {
     usdcWhale = await impersonateAccount("0xf7873a371c111f3cb63c932690ea409618a10f43");
     defiUser = await impersonateAccount("0xf7873a371c111f3cb63c932690ea409618a10f43");
     const b2 = await signers[2].getBalance();
-    console.log({ b2 });
     await signers[2].sendTransaction({
       to: "0xf7873a371c111f3cb63c932690ea409618a10f43",
       value: "10000000000000000000000",
