@@ -1172,10 +1172,10 @@
     "@nomicfoundation/solidity-analyzer-win32-ia32-msvc" "0.0.3"
     "@nomicfoundation/solidity-analyzer-win32-x64-msvc" "0.0.3"
 
-"@nomiclabs/hardhat-ethers@^2.1.1":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-ethers/-/hardhat-ethers-2.1.1.tgz#3f1d1ab49813d1bae4c035cc1adec224711e528b"
-  integrity sha512-Gg0IFkT/DW3vOpih4/kMjeZCLYqtfgECLeLXTs7ZDPzcK0cfoc5wKk4nq5n/izCUzdhidO/Utd6ptF9JrWwWVA==
+"@nomiclabs/hardhat-ethers@^2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-ethers/-/hardhat-ethers-2.2.1.tgz#8057b43566a0e41abeb8142064a3c0d3f23dca86"
+  integrity sha512-RHWYwnxryWR8hzRmU4Jm/q4gzvXpetUOJ4OPlwH2YARcDB+j79+yAYCwO0lN1SUOb4++oOTJEe6AWLEc42LIvg==
 
 "@nomiclabs/hardhat-etherscan@^3.1.0":
   version "3.1.0"
@@ -1249,6 +1249,16 @@
     debug "^4.1.1"
     proper-lockfile "^4.1.1"
 
+"@openzeppelin/hardhat-upgrades@^1.21.0":
+  version "1.21.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.21.0.tgz#e90fb7d858093f35a300b3a5a2fd32bca6179dfc"
+  integrity sha512-Kwl7IN0Hlhj4HluMTTl0DrtU90OI/Q6rG3sAyd2pv3fababe9EuZqs9DydOlkWM45JwTzC+eBzX3TgHsqI13eA==
+  dependencies:
+    "@openzeppelin/upgrades-core" "^1.20.0"
+    chalk "^4.1.0"
+    debug "^4.1.1"
+    proper-lockfile "^4.1.1"
+
 "@openzeppelin/test-helpers@^0.5.15":
   version "0.5.16"
   resolved "https://registry.yarnpkg.com/@openzeppelin/test-helpers/-/test-helpers-0.5.16.tgz#2c9054f85069dfbfb5e8cef3ed781e8caf241fb3"
@@ -1269,6 +1279,19 @@
   version "1.19.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.19.1.tgz#46da1cc1825ed1175ff3eaf5aa6cb5620f7da4d0"
   integrity sha512-g0x/7xIXLHjYzvhsAyzkbIcIxLv87GEdEfq6KmEhljP2hEzcN3krNhGbjpoqZlJcV+sIEFcxSkDkYgOffAQmvA==
+  dependencies:
+    cbor "^8.0.0"
+    chalk "^4.1.0"
+    compare-versions "^5.0.0"
+    debug "^4.1.1"
+    ethereumjs-util "^7.0.3"
+    proper-lockfile "^4.1.1"
+    solidity-ast "^0.4.15"
+
+"@openzeppelin/upgrades-core@^1.20.0":
+  version "1.20.5"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.20.5.tgz#1650b7805a847a5ccc097cd676ec12316a5a4b8d"
+  integrity sha512-Wp4uUov9/8cY0H4xHYsGCkLh0EItrpusSdQPWOTI1Q/YDDfu4uTH3LYyTeVAavzEvkAuKCCuTOPnZBibLZGxSw==
   dependencies:
     cbor "^8.0.0"
     chalk "^4.1.0"
@@ -1385,10 +1408,10 @@
   dependencies:
     antlr4ts "^0.5.0-alpha.4"
 
-"@spritz-finance/sdk@0.1.25":
-  version "0.1.25"
-  resolved "https://registry.yarnpkg.com/@spritz-finance/sdk/-/sdk-0.1.25.tgz#db078bceead20702a01ae3fa4a7b457c8e3dad08"
-  integrity sha512-dX900yEqGoaLCry2ZXbbrKkSntbEWuMonCm2p4hAE5VjCmqQMosl5S7bRuaCnRREo4K4foeS6jeo2vVj6xEhKg==
+"@spritz-finance/sdk@^0.1.27":
+  version "0.1.27"
+  resolved "https://registry.yarnpkg.com/@spritz-finance/sdk/-/sdk-0.1.27.tgz#56b2667737e572c897c7811df8439f5481ae995e"
+  integrity sha512-+yoLP6505D17Vimq8ZtTK2yWO/6Q81XQ4XPPu8MECplphkwqdb724BHcnvWYz5pPxdvGaL2QEUOkYLeRTo29ZQ==
   dependencies:
     "@ethersproject/providers" "^5.7.2"
     "@uniswap/sdk-core" "^3.1.0"
@@ -1971,9 +1994,9 @@
     toformat "^2.0.0"
 
 "@uniswap/smart-order-router@^3.0.3":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@uniswap/smart-order-router/-/smart-order-router-3.0.4.tgz#9a60c1b60bd44ba9ab2abca9e38de19d6beedbc4"
-  integrity sha512-RTX8TsBm/PHC5zF5DOTa1la7CbzF1cyrKc/CZDi9FbDb9qch7SWp21PFeUL+2I8OJRGYn5F9g8IpcIdis1Ax8w==
+  version "3.0.6"
+  resolved "https://registry.yarnpkg.com/@uniswap/smart-order-router/-/smart-order-router-3.0.6.tgz#aae5a54074b062e2b5ab34e58e84ceae7f31539e"
+  integrity sha512-hKXzAhcA0NNKtY+QEA3brXD2OFx20NrhPJ9Mb9R7aaMF7uVmPjFEe4FVDPxYgY3qTwYG6hUCcvUYErTccZyt5w==
   dependencies:
     "@uniswap/default-token-list" "^2.0.0"
     "@uniswap/permit2-sdk" "^1.0.0"
@@ -2026,9 +2049,9 @@
   integrity sha512-HwY2VvkQ8lNR6ks5NqQfAtg+4IZqz3KV1T8d2DlI8emIn9uMmaoFbIOg0nzjqAVKKnZSbMTRRtUoAh6mmjRvog==
 
 "@uniswap/universal-router-sdk@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@uniswap/universal-router-sdk/-/universal-router-sdk-1.1.0.tgz#8e522740b923ec46278af4f52fb532023cf903b6"
-  integrity sha512-BS6Ll/5nYTmRf9HKPbIu7bf122sLXSR2Ojn1x3NJDEVsm6/TaGWmPN0ebRDlXIgM989/ZF1BdJiSXEOjdJI4Ow==
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@uniswap/universal-router-sdk/-/universal-router-sdk-1.1.1.tgz#7963afbdf58f49c82f6b243507959719280548a0"
+  integrity sha512-LSBGCzLKHvy7Wekz0mJTFDDRQPQoRL8eflOZWig2fhGPqY4NCULbCXpWxgvynZT0l00Sp0S1V/TKzPByyg1Vug==
   dependencies:
     "@uniswap/permit2-sdk" "^0.4.0"
     "@uniswap/router-sdk" "^1.4.0"
