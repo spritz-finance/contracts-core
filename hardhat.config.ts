@@ -107,18 +107,13 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: FORKING_URL,
-        // blockNumber: 30965500,
-        blockNumber: 32802513,
+        url: "https://api.avax.network/ext/bc/C/rpc",
+        enabled: true,
       },
       accounts: {
         mnemonic,
       },
-      // accounts: [{
-      //   privateKey
-      // }],
-      // chainId: chainIds.hardhat,
-      chainId: 137,
+      chainId: chainIds["avalanche"],
       blockGasLimit: 150_000_000,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
