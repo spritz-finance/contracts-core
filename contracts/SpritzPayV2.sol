@@ -142,7 +142,7 @@ contract SpritzPayV2 is
         }
 
         IERC20Upgradeable sourceToken = IERC20Upgradeable(sourceTokenAddress);
-        bool isNativeSwap = sourceTokenAddress == _wrappedNative;
+        bool isNativeSwap = sourceTokenAddress == _wrappedNative && msg.value > 0;
 
         // If swap involves non-native token, transfer token in, and grant allowance to
         // the swap router
@@ -175,6 +175,7 @@ contract SpritzPayV2 is
                     deadline
                 );
             } else {
+                if (msg.value < sourceTokenAmountMax) revert InsufficientValue(sourceTokenAmountMax, msg.value);
                 amounts = router.swapAVAXForExactTokens{ value: msg.value }(
                     paymentTokenAmount,
                     path,
@@ -199,12 +200,11 @@ contract SpritzPayV2 is
         //Refund remaining balance left after the swap to the user
         uint256 remainingBalance = sourceTokenAmountMax - sourceTokenSpentAmount;
         if (remainingBalance > 0) {
-            bool refundSuccess = isNativeSwap
-                ? payable(msg.sender).send(remainingBalance)
-                : sourceToken.transfer(msg.sender, remainingBalance);
-
-            if (!refundSuccess) {
-                revert FailedRefund({ tokenAddress: sourceTokenAddress, amount: remainingBalance });
+            if (isNativeSwap) {
+                (bool success, ) = msg.sender.call{ value: remainingBalance }("");
+                if (!success) revert FailedRefund(sourceTokenAddress, remainingBalance);
+            } else {
+                sourceToken.safeTransfer(msg.sender, remainingBalance);
             }
         }
     }
@@ -234,7 +234,7 @@ contract SpritzPayV2 is
             revert NonAcceptedToken(paymentTokenAddress);
         }
 
-        bool isNativeSwap = sourceTokenAddress == _wrappedNative;
+        bool isNativeSwap = sourceTokenAddress == _wrappedNative && msg.value > 0;
         IERC20Upgradeable sourceToken = IERC20Upgradeable(sourceTokenAddress);
 
         if (isNativeSwap) {
