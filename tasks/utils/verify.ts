@@ -49,9 +49,12 @@ export async function verifyContract(
 
 export async function verifyContractUsingDefender(hre: HardhatRuntimeEnvironment, proposal: ExtendedProposalResponse) {
   console.log("Upgrade proposal created at:", proposal.url);
-  const receipt = await proposal?.txResponse?.wait();
+  const receipt = await proposal?.txResponse?.wait(5);
   console.log(`Contract address ${receipt?.contractAddress}`);
-  await verifyContract(receipt?.contractAddress!, hre);
+
+  await verifyContract(receipt!.contractAddress!, hre, [], {
+    contract: "contracts/SpritzPayV2.sol:SpritzPayV2",
+  });
 }
 
 export function getContractAddress(addressOrInstance: ContractAddressOrInstance): string {
