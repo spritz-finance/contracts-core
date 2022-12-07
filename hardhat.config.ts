@@ -11,7 +11,7 @@ import "hardhat-spdx-license-identifier";
 // import "hardhat-storage-layout";
 import "hardhat-tracer";
 import { HardhatUserConfig } from "hardhat/config";
-import { NetworkUserConfig } from "hardhat/types";
+import { HttpNetworkConfig, NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 import "solidity-coverage";
 
@@ -34,6 +34,7 @@ const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
 
 // export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
 export const FORKING_URL = `https://opt-mainnet.g.alchemy.com/v2/khoRjoOTMnjpiCJQlemK5FHQbKcYVP3t`;
+export const FORKING_CHAIN = "mainnet";
 
 const chainIds = {
   "arbitrum-mainnet": 42161,
@@ -113,9 +114,8 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: FORKING_URL,
-        // blockNumber: 30965500,
-        blockNumber: 32802513,
+        url: (getChainConfig(FORKING_CHAIN) as HttpNetworkConfig).url,
+        blockNumber: 16132246,
       },
       accounts: {
         mnemonic,
@@ -125,7 +125,7 @@ const config: HardhatUserConfig = {
       // }],
       // chainId: chainIds.hardhat,
       // chainId: 137,
-      chainId: 10,
+      chainId: chainIds[FORKING_CHAIN],
       blockGasLimit: 150_000_000,
     },
     arbitrum: getChainConfig("arbitrum-mainnet"),
