@@ -9,7 +9,6 @@ import {
   WETH_MAINNET_ADDRESS,
   WMATIC_POLYGON_ADDRESS,
 } from "../../tasks/deploy/constants";
-import { getERC20Contracts } from "../helpers/helpers";
 
 const simulationConfig = {
   "polygon-mainnet": {

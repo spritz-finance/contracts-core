@@ -2,7 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { SpritzSmartPay } from "../../src/types";
+import { SpritzSmartPay_Old } from "../../src/types";
 import { LINK_POLYGON_ADDRESS } from "../helpers/constants";
 
 const tokenAddress = LINK_POLYGON_ADDRESS;
@@ -13,14 +13,14 @@ const getSubscriptionId = (address: string) => {
 };
 
 describe("SpritzSmartPay", function () {
-  let smartPay: SpritzSmartPay;
+  let smartPay: SpritzSmartPay_Old;
   let deployer: SignerWithAddress;
   let sub: SignerWithAddress;
 
   beforeEach(async function () {
     [deployer, sub] = await ethers.getSigners();
-    const SpritzSmartPayFactory = await ethers.getContractFactory("SpritzSmartPay");
-    smartPay = (await SpritzSmartPayFactory.deploy(deployer.address, deployer.address)) as SpritzSmartPay;
+    const SpritzSmartPayFactory = await ethers.getContractFactory("SpritzSmartPay_Old");
+    smartPay = (await SpritzSmartPayFactory.deploy(deployer.address, deployer.address)) as SpritzSmartPay_Old;
     await smartPay.deployed();
   });
 

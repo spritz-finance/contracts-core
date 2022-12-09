@@ -103,7 +103,7 @@ describe("SpritzPayV2", function () {
     if (paymentArgsCache) {
       wbtcPaymentQuote = paymentArgsCache;
     } else {
-      const { args } = await sdk.getV3SwapPaymentData(WBTC_POLYGON_ADDRESS, 10, reference);
+      const { args } = await sdk.getV3SwapPaymentData(WBTC_POLYGON_ADDRESS, 10, reference, Date.now());
       wbtcPaymentQuote = args as PaymentArgs;
       paymentArgsCache = wbtcPaymentQuote;
     }
@@ -111,7 +111,7 @@ describe("SpritzPayV2", function () {
     if (ethPaymentArgsCache) {
       ethPaymentQuote = ethPaymentArgsCache;
     } else {
-      const { args } = await sdk.getV3SwapPaymentData(NATIVE_ZERO_ADDRESS, 10, reference);
+      const { args } = await sdk.getV3SwapPaymentData(NATIVE_ZERO_ADDRESS, 10, reference, Date.now());
       ethPaymentQuote = args as EthPaymentArgs;
       ethPaymentArgsCache = ethPaymentQuote;
     }
