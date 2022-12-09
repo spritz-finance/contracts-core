@@ -28,7 +28,7 @@ const IMPERSONATION_ADDRESS = "0x5e33ba4f6d5150fe7aa16fccfd77b2b8047163f7";
 // const reference = "6304ca0d2f5acf6d69b3c58e";
 // const formattedReference = formatPaymentReference(reference);
 
-describe.only("production simulation", () => {
+describe("production simulation", () => {
   async function impersonateAccount(acctAddress: string) {
     await network.provider.request({
       method: "hardhat_impersonateAccount",

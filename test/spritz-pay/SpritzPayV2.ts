@@ -54,7 +54,7 @@ let ethPaymentArgsCache: EthPaymentArgs | null = [
 
 const startBlock = 32802513;
 
-describe.only("SpritzPayV2", function () {
+describe("SpritzPayV2", function () {
   this.timeout(10000000);
   let admin: SignerWithAddress;
   let recipient: SignerWithAddress;
