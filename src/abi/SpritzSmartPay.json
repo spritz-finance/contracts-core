@@ -21,7 +21,7 @@
   "function SUBSCRIPTION_TYPEHASH() view returns (bytes32)",
   "function createSubscription(address,address,uint256,uint256,uint256,bytes32,uint8,tuple(uint8,bytes32,bytes32))",
   "function deleteSubscription(address,address,uint256,uint256,uint256,bytes32,uint8)",
-  "function hashSubscription(address,address,uint256,uint256,uint256,bytes32,uint8) pure returns (uint256)",
+  "function hashSubscription(address,address,uint256,uint256,uint256,bytes32,uint8) view returns (uint256)",
   "function owner() view returns (address)",
   "function pause()",
   "function paused() view returns (bool)",

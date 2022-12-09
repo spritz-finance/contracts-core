@@ -112,7 +112,6 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
     mapping(uint256 => Subscription) public subscriptions;
 
     constructor(address spritzPay, address paymentToken) EIP712("SpritzSmartPay", version()) {
-        if (spritzPay == address(0)) revert InvalidAddress();
         SPRITZ_PAY_ADDRESS = spritzPay;
         ACCEPTED_PAYMENT_TOKEN = paymentToken;
     }
@@ -295,6 +294,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
      * @param paymentReference Arbitrary payment reference
      * @param cadence The frequency at which the subscription can be charged
      * @dev Allows subscription data to be stored off-chain, and validated on-chain
+     * We include the chain id in the hash as this prevents collisions when deployed on multiple chains
      */
     function hashSubscription(
         address subscriber,
@@ -304,7 +304,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
         uint256 totalPayments,
         bytes32 paymentReference,
         SubscriptionCadence cadence
-    ) public pure returns (uint256) {
+    ) public view returns (uint256) {
         return
             uint256(
                 keccak256(
@@ -315,7 +315,8 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
                         startTime,
                         totalPayments,
                         paymentReference,
-                        cadence
+                        cadence,
+                        block.chainid
                     )
                 )
             );
