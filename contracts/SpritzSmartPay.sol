@@ -4,346 +4,402 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./lib/SubscriptionChargeDate.sol";
 
-contract SpritzSmartPay is Context, Pausable, Ownable {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableSet for EnumerableSet.Bytes32Set;
+/**
+ * @title SpritzSmartPay
+ * @author Spritz Finance
+ * @notice A contract for creating and processing recurring subscriptions. SpritzSmartPay acts as the manager of the
+ * subscriptions, allows subscriptions to be created, validated and processed, but delegates the actual payment logic
+ * to the SpritzPay contract.
+ */
+contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
+    using SafeERC20 for IERC20;
     using SubscriptionChargeDate for uint256;
 
-    /**
-     * @notice Thrown when the transfer of tokens fails
-     * @param owner The address of the ERC-20 token
-     * @param subscriptionId The transfer recipient
-     * @param amount The amount of the token transfers
-     */
+    uint256 private constant MAX_UINT = 2 ** 256 - 1;
+
+    bytes4 private constant SPRITZ_PAY_SELECTOR =
+        bytes4(keccak256("payWithTokenSubscription(address,address,uint256,bytes32)"));
+
+    bytes32 public constant SUBSCRIPTION_TYPEHASH =
+        keccak256(
+            "Subscription(address paymentToken,uint256 paymentAmount,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,SubscriptionCadence cadence)"
+        );
+
+    event SubscriptionCreated(
+        address indexed subscriber,
+        uint256 indexed subscriptionId,
+        address indexed paymentToken,
+        uint256 paymentAmount,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence
+    );
+
+    event PaymentProcessed(
+        address indexed subscriber,
+        uint256 indexed subscriptionId,
+        address indexed paymentToken,
+        uint256 paymentAmount,
+        bytes32 paymentReference
+    );
+
+    event SubscriptionDeleted(address indexed subscriber, uint256 indexed subscriptionId);
+
     error ChargeSubscriptionFailed(address owner, bytes32 subscriptionId, uint256 amount);
 
-    /**
-     * @notice Thrown when attempting to incorrectly charge the subscription
-     * @param subscriptionId The id of the subscription
-     * @param date Timstamp of the attempted charge
-     */
-    error InvalidPaymentCharge(bytes32 subscriptionId, uint256 date);
+    error InvalidPaymentCharge(uint256 subscriptionId, uint256 date);
 
-    /**
-     * @notice Thrown when an unauthorised wallet tries to spend user funds
-     * @param caller The wallet calling the guarded method
-     */
     error UnauthorizedExecutor(address caller);
 
-    /**
-     * @notice Thrown when attempting to use an invalid
-     */
     error InvalidAddress();
 
-    /**
-     * @notice Emitted when a user creates a new subscription
-     * @param user The user who owns the subscription
-     * @param subscriptionId The id of the subscription
-     */
-    event SubscriptionCreated(address indexed user, bytes32 indexed subscriptionId);
+    error SpritzPayPaymentFailure();
 
-    /**
-     * @notice Emitted when a user deactivates their subscription
-     * @param user The user who owns the subscription
-     * @param subscriptionId The id of the subscription
-     */
-    event SubscriptionDeactivated(address indexed user, bytes32 indexed subscriptionId);
+    error InvalidSubscription();
 
-    /**
-     * @notice Emitted when a user becomes active
-     * @param user The user who created a subscription
-     */
-    event UserActivated(address indexed user);
+    error InvalidPaymentToken();
 
-    /**
-     * @notice The valid timings/cadence in which a subscription can be charged
-     */
+    error NotSubscriptionHolder(address caller);
+
+    error SubscriptionAlreadyExists(uint256 subscriptionId);
+
+    error SubscriptionNotFound(uint256 subscriptionId);
+
+    /// @notice The valid timings/cadence in which a subscription can be charged
     enum SubscriptionCadence {
         MONTHLY,
         WEEKLY,
         DAILY
     }
 
-    /**
-     * @dev Configuration for a user fixed payment subscription
-     * @param cadence The timing of the subscription: monthly, weekly, daily
-     * @param paymentAmount The amount in fiat of the payment, 2 decimals
-     * @param paymentCount The current number of payments made on the subscription
-     * @param totalPayments The total number of payments allowed on the subscription. 0 = unlimited
-     * @param owner The owner of the subscription
-     * @param paymentToken The address of the token withdrawn from the users wallet
-     * @param startTime The date from which the first payment is allowed
-     * @param lastPaymentTimestamp The timestamp of the last payment
-     * @param paymentReference The payment reference
-     */
-    struct Subscription {
-        SubscriptionCadence cadence;
-        uint32 paymentAmount;
-        uint128 paymentCount;
-        uint128 totalPayments;
-        address owner;
-        address paymentToken;
-        uint256 startTime;
-        uint256 lastPaymentTimestamp;
-        bytes32 paymentReference;
+    /// @dev components of an ECDSA signature
+    struct Signature {
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
     }
 
-    bytes4 private constant DECIMALS_SELECTOR = bytes4(keccak256("decimals()"));
+    /**
+     * @dev Configuration for a user fixed payment subscription
+     * @param paymentCount The current number of payments made on the subscription
+     * @param startTime The date from which the first payment is allowed
+     * @param lastPaymentTimestamp The timestamp of the last payment
+     * @dev startTime is not an essential property to store on-chain, but we will be using
+     * it to validate the existance of a proposal as paymentCount and lastPaymentTimestamp
+     * can both be 0, while startTime cannot.
+     */
+    struct Subscription {
+        uint256 paymentCount;
+        uint256 startTime;
+        uint256 lastPaymentTimestamp;
+    }
 
     /// @notice The wallet owned by spritz that receives payments
     address internal immutable SPRITZ_PAY_ADDRESS;
 
-    /// @notice The wallet owned by spritz that executes sensitive payments
-    address internal immutable AUTO_TASK_BOT_ADDRESS;
+    /// @notice The address of the stablecoin used to make payments
+    address public immutable ACCEPTED_PAYMENT_TOKEN;
 
-    /// @notice List of all users who have a subscription
-    EnumerableSet.AddressSet private activeUsers;
+    /// @notice Mapping of the subscription id to the subscription on-chain data
+    mapping(uint256 => Subscription) public subscriptions;
 
-    /// @notice Mapping of the subscription id to the subscription
-    mapping(bytes32 => Subscription) public subscriptions;
-
-    /// @notice Subscription ids attributed to a user
-    mapping(address => EnumerableSet.Bytes32Set) internal userSubscriptions;
-
-    /// @notice Nonce for user subscriptions
-    mapping(address => uint128) public subscriptionNonce;
-
-    constructor(address spritzPay, address autoTaskWallet) {
-        if (spritzPay == address(0) || autoTaskWallet == address(0)) revert InvalidAddress();
+    constructor(address spritzPay, address paymentToken) EIP712("SpritzSmartPay", version()) {
+        if (spritzPay == address(0)) revert InvalidAddress();
         SPRITZ_PAY_ADDRESS = spritzPay;
-        AUTO_TASK_BOT_ADDRESS = autoTaskWallet;
+        ACCEPTED_PAYMENT_TOKEN = paymentToken;
+    }
+
+    function version() public pure returns (string memory) {
+        return "1";
     }
 
     /**
-     * @dev Throws if called by any account other than the auto task wallet.
-     */
-    modifier onlyAutoTaskBot() {
-        _checkAutoTaskAddress(msg.sender);
-        _;
-    }
-
-    /**
-     * @dev Attempt to register a user after their first subscription
-     */
-    modifier checksActiveSubscriptions() {
-        _;
-        _checkActiveSubscriptions(msg.sender);
-    }
-
-    /**
-     * @notice Get all subscriptions for a given user address
-     * @param user The address of the subscriber
-     * @return An array of bytes32 values that map to subscriptions
-     */
-    function getUserSubscriptions(address user) external view returns (bytes32[] memory) {
-        return userSubscriptions[user].values();
-    }
-
-    /**
-     * @notice Count of all user subscriptions
-     * @param user The address of the subscriber
-     * @return An array of bytes32 values that map to subscriptions
-     */
-    function getUserSubscriptionCount(address user) external view returns (uint256) {
-        return userSubscriptions[user].length();
-    }
-
-    /**
-     * @notice Get all subscriptions for a given user address
-     * @param subscriptionId The address of the subscriber
-     * @return An array of bytes32 values that map to subscriptions
-     */
-    function getSubscription(bytes32 subscriptionId) public view returns (Subscription memory) {
-        return subscriptions[subscriptionId];
-    }
-
-    /**
-     * @dev Get all users with subscriptions
-     * @return An array of the unique user addresses
-     */
-    function getActiveUsers() external view returns (address[] memory) {
-        return activeUsers.values();
-    }
-
-    /**
-     * @notice Check if a subscription is ready to be charged
-     * @param subscriptionId The id of the subscription
-     */
-    function canChargeSubscription(bytes32 subscriptionId) public view returns (bool) {
-        Subscription memory subscription = getSubscription(subscriptionId);
-        if (subscription.totalPayments > 0 && subscription.paymentCount == subscription.totalPayments) return false;
-
-        SubscriptionCadence cadence = subscription.cadence;
-
-        if (cadence == SubscriptionCadence.MONTHLY) {
-            return block.timestamp.validMonthsSince(subscription.startTime, subscription.paymentCount);
-        }
-        if (cadence == SubscriptionCadence.WEEKLY) {
-            return block.timestamp.validWeeksSince(subscription.startTime, subscription.paymentCount);
-        }
-        if (cadence == SubscriptionCadence.DAILY) {
-            return block.timestamp.validDaysSince(subscription.startTime, subscription.paymentCount);
-        }
-        return false;
-    }
-
-    /**
-     * @dev Deactivate a subscription
-     * @param subscriptionId The subscription ID to deactivate
-     */
-    function deactivateSubscription(bytes32 subscriptionId) external checksActiveSubscriptions {
-        Subscription storage subscription = subscriptions[subscriptionId];
-        if (subscription.owner != msg.sender) revert UnauthorizedExecutor(msg.sender);
-
-        userSubscriptions[msg.sender].remove(subscriptionId);
-        delete subscriptions[subscriptionId];
-
-        emit SubscriptionDeactivated(msg.sender, subscriptionId);
-    }
-
-    /**
-     * @notice Get all subscriptions for a given user address
-     * @param paymentAmount The address of the subscriber
-     * @param paymentToken An array of bytes32 values that map to subscriptions
-     * @param startTime An array of bytes32 values that map to subscriptions
-     * @param totalPayments An array of bytes32 values that map to subscriptions
-     * @param paymentReference An array of bytes32 values that map to subscriptions
+     * @notice Create a subscription on behalf of a user using an EIP-712 signature
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
+     * @param signature The message signed by the user
+     * @dev The bulk of the subscription data is emitted in the "SubscriptionCreated" event and will be stored off-chain.
+     * This allows us to save significant gas by only storing critcal/variable data on-chain, and using a hash to validate the off-chain
+     * data
      */
     function createSubscription(
-        uint32 paymentAmount,
-        uint128 totalPayments,
         address paymentToken,
+        uint256 paymentAmount,
         uint256 startTime,
+        uint256 totalPayments,
         bytes32 paymentReference,
-        SubscriptionCadence cadence
-    ) public checksActiveSubscriptions {
-        unchecked {
-            subscriptionNonce[msg.sender] += 1;
-        }
+        SubscriptionCadence cadence,
+        Signature calldata signature
+    ) external whenNotPaused {
+        if (paymentAmount == 0 || startTime == 0) revert InvalidSubscription();
+        if (paymentToken != ACCEPTED_PAYMENT_TOKEN) revert InvalidPaymentToken();
 
-        Subscription memory subscription = Subscription({
-            cadence: cadence,
-            paymentAmount: paymentAmount,
-            paymentCount: 0,
-            totalPayments: totalPayments,
-            owner: msg.sender,
-            paymentToken: paymentToken,
-            startTime: startTime,
-            lastPaymentTimestamp: 0,
-            paymentReference: paymentReference
-        });
+        address subscriber = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        SUBSCRIPTION_TYPEHASH,
+                        paymentToken,
+                        paymentAmount,
+                        startTime,
+                        totalPayments,
+                        paymentReference,
+                        cadence
+                    )
+                )
+            ),
+            signature.v,
+            signature.r,
+            signature.s
+        );
 
-        // create a new subscription id for the user
-        bytes32 subscriptionId = newSubscriptionId();
+        uint256 subscriptionId = hashSubscription(
+            subscriber,
+            paymentToken,
+            paymentAmount,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence
+        );
 
-        // store subscription
-        subscriptions[subscriptionId] = subscription;
-        // attribute subscription to user
-        userSubscriptions[msg.sender].add(subscriptionId);
+        Subscription storage subscription = subscriptions[subscriptionId];
+        if (subscription.startTime > 0) revert SubscriptionAlreadyExists(subscriptionId);
 
-        emit SubscriptionCreated(msg.sender, subscriptionId);
+        subscription.startTime = startTime;
+
+        emit SubscriptionCreated(
+            subscriber,
+            subscriptionId,
+            paymentToken,
+            paymentAmount,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence
+        );
     }
 
     /**
-     * @notice Process the payment for a given subscription
-     * @param subscriptionId The id of the subscription
+     * @notice Charges the given subscription and sends the payment to the SpritzPay contract
+     * @param subscriber The account who owns the subscription
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
      */
-    function processPayment(bytes32 subscriptionId) external whenNotPaused {
+    function processPayment(
+        address subscriber,
+        address paymentToken,
+        uint256 paymentAmount,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence
+    ) external whenNotPaused {
+        uint256 subscriptionId = hashSubscription(
+            subscriber,
+            paymentToken,
+            paymentAmount,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence
+        );
         Subscription storage subscription = subscriptions[subscriptionId];
+        if (subscription.startTime == 0) revert SubscriptionNotFound(subscriptionId);
 
-        bool canCharge = canChargeSubscription(subscriptionId);
+        bool canCharge = canChargeSubscription(
+            totalPayments,
+            subscription.paymentCount,
+            subscription.startTime,
+            cadence
+        );
         if (!canCharge) revert InvalidPaymentCharge(subscriptionId, block.timestamp);
 
         subscription.lastPaymentTimestamp = block.timestamp;
-        subscription.paymentCount += 1;
-        uint256 paymentTokenAmount = tokenAmount(subscription.paymentAmount, subscription.paymentToken);
-
-        chargeSubscription(subscription, subscriptionId, paymentTokenAmount);
-
-        checkSpirtzPayApproval(subscription.paymentToken, paymentTokenAmount);
-        // spritzPay.call(abi.encodeWithSignature('payWithToken(address,uint256,bytes32)', ))
-    }
-
-    /**
-     * @dev Throws if the sender is not the spritz auto task bot
-     * @param caller The address calling the contract method
-     */
-    function _checkAutoTaskAddress(address caller) private view {
-        if (AUTO_TASK_BOT_ADDRESS != caller) revert UnauthorizedExecutor(caller);
-    }
-
-    /**
-     * @dev Update users active status if needed
-     * @param user Address of the user
-     */
-    function _checkActiveSubscriptions(address user) private {
-        bool isActive = activeUsers.contains(user);
-        EnumerableSet.Bytes32Set storage _userSubscriptions = userSubscriptions[user];
-        uint256 subscriptionCount = _userSubscriptions.length();
-
-        if (isActive && subscriptionCount == 0) {
-            activeUsers.remove(user);
-        } else if (!isActive && subscriptionCount > 0) {
-            activeUsers.add(user);
-            emit UserActivated(user);
+        unchecked {
+            subscription.paymentCount += 1;
         }
+
+        // pull funds from user
+        IERC20 token = IERC20(paymentToken);
+        token.safeTransferFrom(subscriber, address(this), paymentAmount);
+
+        initiateSpritzPayPayment(subscriber, token, paymentAmount, paymentReference);
+
+        emit PaymentProcessed(subscriber, subscriptionId, address(token), paymentAmount, paymentReference);
     }
 
     /**
-     * @dev Compute a collision-resistant id for the subscription
+     * @notice Allows a user to delete their subscription
+     * @param subscriber The account who owns the subscription
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
      */
-    function newSubscriptionId() private view returns (bytes32) {
-        return keccak256(abi.encodePacked(msg.sender, subscriptionNonce[msg.sender]));
-    }
+    function deleteSubscription(
+        address subscriber,
+        address paymentToken,
+        uint256 paymentAmount,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence
+    ) external {
+        if (msg.sender != subscriber) revert NotSubscriptionHolder(msg.sender);
 
-    // need to check this
-    function tokenAmount(uint32 paymentAmount, address tokenAddress) internal view returns (uint256) {
-        (bool success, bytes memory returnData) = tokenAddress.staticcall(abi.encodeWithSelector(DECIMALS_SELECTOR));
-        require(success, "couldnt get decimals");
-        uint8 decimals = abi.decode(returnData, (uint8));
-        return paymentAmount * (10**(decimals - 2));
+        uint256 subscriptionId = hashSubscription(
+            subscriber,
+            paymentToken,
+            paymentAmount,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence
+        );
+        if (subscriptions[subscriptionId].startTime == 0) revert SubscriptionNotFound(subscriptionId);
+
+        delete subscriptions[subscriptionId];
+
+        emit SubscriptionDeleted(subscriber, subscriptionId);
     }
 
     /**
-     * @notice Attempt to withdraw funds from users wallet
-     * @param subscription The subscription being charged
-     * @param subscriptionId The id of the subscription
-     * @param amount The amount of the subscription payment token to be charged
+     * @notice Creates a hash using the subscription data
+     * @param subscriber The account who owns the subscription
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
+     * @dev Allows subscription data to be stored off-chain, and validated on-chain
      */
-    function chargeSubscription(
-        Subscription storage subscription,
-        bytes32 subscriptionId,
-        uint256 amount
+    function hashSubscription(
+        address subscriber,
+        address paymentToken,
+        uint256 paymentAmount,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence
+    ) public pure returns (uint256) {
+        return
+            uint256(
+                keccak256(
+                    abi.encode(
+                        subscriber,
+                        paymentToken,
+                        paymentAmount,
+                        startTime,
+                        totalPayments,
+                        paymentReference,
+                        cadence
+                    )
+                )
+            );
+    }
+
+    /**
+     * @notice Initiates a payment request to the SpritzPay contract on behalf of the subscriber
+     * @param subscriber The account who the payment is being made on behalf of
+     * @param paymentToken The token being used for payment
+     * @param paymentAmount The amount of the token being transferred
+     * @param paymentReference Arbitrary reference ID of the related payment
+     */
+    function initiateSpritzPayPayment(
+        address subscriber,
+        IERC20 paymentToken,
+        uint256 paymentAmount,
+        bytes32 paymentReference
     ) private {
-        IERC20Upgradeable token = IERC20Upgradeable(subscription.paymentToken);
-        token.safeTransferFrom(subscription.owner, address(this), amount);
-    }
+        // Check that SpritzPay has spending allowance for the token
+        uint256 allowance = paymentToken.allowance(address(this), SPRITZ_PAY_ADDRESS);
+        if (allowance < paymentAmount) {
+            paymentToken.safeIncreaseAllowance(SPRITZ_PAY_ADDRESS, MAX_UINT - allowance);
+        }
 
-    /**
-     * @dev Check that the SpritzPay contract has spend approval for the token
-     * @param token Address of the ERC-20 payment token
-     * @param amount The amount of the outgoing payment
-     */
-    function checkSpirtzPayApproval(address token, uint256 amount) private {
-        IERC20Upgradeable paymentToken = IERC20Upgradeable(token);
-        if (paymentToken.allowance(address(this), SPRITZ_PAY_ADDRESS) < amount) {
-            paymentToken.safeApprove(SPRITZ_PAY_ADDRESS, 2**256 - 1);
+        // call to the SpritzPay contract to issue payment event
+        (bool success, bytes memory returndata) = SPRITZ_PAY_ADDRESS.call(
+            abi.encodeWithSelector(
+                SPRITZ_PAY_SELECTOR,
+                subscriber,
+                address(paymentToken),
+                paymentAmount,
+                paymentReference
+            )
+        );
+
+        if (!success) {
+            /// Look for the revert reason and return it if found
+            if (returndata.length > 0) {
+                assembly {
+                    let returndata_size := mload(returndata)
+                    revert(add(32, returndata), returndata_size)
+                }
+            } else {
+                revert SpritzPayPaymentFailure();
+            }
         }
     }
 
-    /*
-     * Admin functions
+    /**
+     * @notice Checks whether a subscription can be charged
+     * @dev Checks whether the appropriate number of intervals have passed
+     * given the start date of the subscription, the frequency of charges,
+     * and the total number of charges.
+     * @param totalPayments The total payments the subscription is allowed to charge
+     * @param paymentCount The current number of payments that have been processed on the subscription
+     * @param startTime The start time of the first charge
+     * @param cadence The frequency at which the subscription can be charged
+     */
+    function canChargeSubscription(
+        uint256 totalPayments,
+        uint256 paymentCount,
+        uint256 startTime,
+        SubscriptionCadence cadence
+    ) private view returns (bool) {
+        if (totalPayments > 0 && paymentCount == totalPayments) return false;
+
+        if (cadence == SubscriptionCadence.MONTHLY) {
+            return block.timestamp.validMonthsSince(startTime, paymentCount);
+        } else if (cadence == SubscriptionCadence.WEEKLY) {
+            return block.timestamp.validWeeksSince(startTime, paymentCount);
+        } else if (cadence == SubscriptionCadence.DAILY) {
+            return block.timestamp.validDaysSince(startTime, paymentCount);
+        }
+
+        return false;
+    }
+
+    /* ========== Admin Functionality ========== */
+
+    /**
+     * @notice Allow the contract admin to pause the contract
      */
     function pause() external onlyOwner {
         _pause();
     }
 
+    /**
+     * @notice Allow the contract admin to unpause the contract
+     */
     function unpause() external onlyOwner {
         _unpause();
     }
