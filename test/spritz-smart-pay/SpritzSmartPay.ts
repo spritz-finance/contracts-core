@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
 import { ethers, waffle } from "hardhat";
@@ -25,6 +25,8 @@ describe.only("SpritzSmartPay", () => {
     const SmartPayFactory = (await ethers.getContractFactory("SpritzSmartPay")) as SpritzSmartPay__factory;
     const smartPay = (await SmartPayFactory.deploy(spritzPay.address, paymentToken.address)) as SpritzSmartPay;
     await smartPay.deployed();
+
+    await paymentToken.mint(subscriber.address, "10000000000000000000");
 
     return {
       paymentToken,
@@ -494,6 +496,218 @@ describe.only("SpritzSmartPay", () => {
             cadence,
           ),
       ).to.emit(smartPay, "SubscriptionDeleted");
+    });
+  });
+
+  describe("processSubscription", () => {
+    it("prevents charging a subscription when the contract is paused", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await smartPay.pause();
+
+      await expect(
+        smartPay.processPayment(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
+    it("allows a valid payment to be charged", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, spritzPay } = await loadFixture(setupFixture);
+      await spritzPay.mock.payWithTokenSubscription.returns();
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(smartPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await smartPay.processPayment(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+      );
+    });
+
+    it("allows a valid payment to be charged", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, spritzPay } = await loadFixture(setupFixture);
+      await spritzPay.mock.payWithTokenSubscription.returns();
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(smartPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await smartPay.processPayment(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+      );
+    });
+    it("reverts if the call to the SpritzPay contract fails", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, spritzPay } = await loadFixture(setupFixture);
+      await spritzPay.mock.payWithTokenSubscription.reverts();
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(smartPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay.processPayment(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.revertedWith("Mock revert");
+    });
+
+    it("reverts if the smart pay contract has not been given sufficient allowance", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay.processPayment(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.rejectedWith("ERC20: insufficient allowance");
     });
   });
 });

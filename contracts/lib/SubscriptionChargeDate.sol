@@ -38,15 +38,7 @@ library SubscriptionChargeDate {
     // month = month + 2 - 12 * L
     // year = 100 * (N - 49) + year + L
     // ------------------------------------------------------------------------
-    function _daysToDate(uint256 _days)
-        internal
-        pure
-        returns (
-            uint32 year,
-            uint8 month,
-            uint8 day
-        )
-    {
+    function _daysToDate(uint256 _days) internal pure returns (uint32 year, uint8 month, uint8 day) {
         int256 __days = int256(_days);
 
         int256 L = __days + 68569 + OFFSET19700101;
