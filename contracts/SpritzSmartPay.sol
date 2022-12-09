@@ -27,7 +27,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
 
     bytes32 public constant SUBSCRIPTION_TYPEHASH =
         keccak256(
-            "Subscription(address paymentToken,uint256 paymentAmount,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,SubscriptionCadence cadence)"
+            "Subscription(address paymentToken,uint256 paymentAmount,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,uint8 cadence)"
         );
 
     event SubscriptionCreated(
@@ -70,6 +70,8 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
     error SubscriptionAlreadyExists(uint256 subscriptionId);
 
     error SubscriptionNotFound(uint256 subscriptionId);
+
+    error InvalidSignature();
 
     /// @notice The valid timings/cadence in which a subscription can be charged
     enum SubscriptionCadence {
@@ -121,6 +123,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
 
     /**
      * @notice Create a subscription on behalf of a user using an EIP-712 signature
+     * @param _subscriber The address of user who the subscription belongs to
      * @param paymentToken The address of the token used for payment
      * @param paymentAmount The amount the subscription is charged each time the subscription is processed
      * @param startTime The timestamp when the subscription should first be charged
@@ -133,6 +136,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
      * data
      */
     function createSubscription(
+        address _subscriber,
         address paymentToken,
         uint256 paymentAmount,
         uint256 startTime,
@@ -162,6 +166,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
             signature.r,
             signature.s
         );
+        if (_subscriber != subscriber) revert InvalidSignature();
 
         uint256 subscriptionId = hashSubscription(
             subscriber,
