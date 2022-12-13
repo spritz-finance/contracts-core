@@ -54,7 +54,7 @@ let ethPaymentArgsCache: EthPaymentArgs | null = [
 
 const startBlock = 32802513;
 
-describe.only("SpritzPayV2", function () {
+describe("SpritzPayV2", function () {
   this.timeout(10000000);
   let admin: SignerWithAddress;
   let recipient: SignerWithAddress;
@@ -103,7 +103,7 @@ describe.only("SpritzPayV2", function () {
     if (paymentArgsCache) {
       wbtcPaymentQuote = paymentArgsCache;
     } else {
-      const { args } = await sdk.getV3SwapPaymentData(WBTC_POLYGON_ADDRESS, 10, reference);
+      const { args } = await sdk.getV3SwapPaymentData(WBTC_POLYGON_ADDRESS, 10, reference, Date.now());
       wbtcPaymentQuote = args as PaymentArgs;
       paymentArgsCache = wbtcPaymentQuote;
     }
@@ -111,7 +111,7 @@ describe.only("SpritzPayV2", function () {
     if (ethPaymentArgsCache) {
       ethPaymentQuote = ethPaymentArgsCache;
     } else {
-      const { args } = await sdk.getV3SwapPaymentData(NATIVE_ZERO_ADDRESS, 10, reference);
+      const { args } = await sdk.getV3SwapPaymentData(NATIVE_ZERO_ADDRESS, 10, reference, Date.now());
       ethPaymentQuote = args as EthPaymentArgs;
       ethPaymentArgsCache = ethPaymentQuote;
     }

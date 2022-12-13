@@ -1,164 +1,713 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, waffle } from "hardhat";
 
-import { SpritzSmartPay } from "../../src/types";
-import { LINK_POLYGON_ADDRESS } from "../helpers/constants";
+import { MockToken, SpritzSmartPay, SpritzSmartPay__factory } from "../../src/types";
+import { MockToken__factory } from "../../src/types/factories/contracts/test/MockToken__factory";
+import { getSubscriptionCreatedEventData } from "./utilities/events";
+import { getSignedSubscription } from "./utilities/signedSubscription";
 
-const tokenAddress = LINK_POLYGON_ADDRESS;
-const reference = "0x00000000000000000000000000000000000000006304ca0d2f5acf6d69b3c58e";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const SpritzPay = require("../../artifacts/contracts/SpritzPayV2.sol/SpritzPayV2.json");
 
-const getSubscriptionId = (address: string) => {
-  return ethers.utils.keccak256(ethers.utils.solidityPack(["address", "uint128"], [address, 1]));
-};
+const reference = formatPaymentReference("6304ca0d2f5acf6d69b3c58e");
 
-describe("SpritzSmartPay", function () {
-  let smartPay: SpritzSmartPay;
-  let deployer: SignerWithAddress;
-  let sub: SignerWithAddress;
+describe.only("SpritzSmartPay", () => {
+  const setupFixture = async () => {
+    const [deployer, subscriber, bob] = await ethers.getSigners();
 
-  beforeEach(async function () {
-    [deployer, sub] = await ethers.getSigners();
-    const SpritzSmartPayFactory = await ethers.getContractFactory("SpritzSmartPay");
-    smartPay = (await SpritzSmartPayFactory.deploy(deployer.address, deployer.address)) as SpritzSmartPay;
+    const spritzPay = await waffle.deployMockContract(deployer, SpritzPay.abi);
+
+    const PaymentTokenFactory = (await ethers.getContractFactory("MockToken")) as MockToken__factory;
+    const paymentToken = (await PaymentTokenFactory.deploy()) as MockToken;
+
+    const SmartPayFactory = (await ethers.getContractFactory("SpritzSmartPay")) as SpritzSmartPay__factory;
+    const smartPay = (await SmartPayFactory.deploy(spritzPay.address, paymentToken.address)) as SpritzSmartPay;
     await smartPay.deployed();
-  });
 
-  describe("initial state", () => {
-    it("has no active users initially", async () => {
-      const activeUsers = await smartPay.getActiveUsers();
-      expect(activeUsers).to.be.empty;
+    await paymentToken.mint(subscriber.address, "10000000000000000000");
+
+    return {
+      paymentToken,
+      spritzPay,
+      smartPay,
+      deployer,
+      subscriber,
+      bob,
+    };
+  };
+
+  describe("Deployment and Setup", () => {
+    it("deploys a contract", async () => {
+      const { smartPay } = await loadFixture(setupFixture);
+      expect(smartPay.address).to.be.properAddress;
     });
 
-    it("initially gives users a nonce of 0", async () => {
-      const nonce = await smartPay.subscriptionNonce(sub.address);
-      expect(nonce).to.eq(0);
-    });
-  });
-
-  describe("subscription creation", () => {
-    it("emits a subscription created event", async () => {
-      await expect(smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0))
-        .to.emit(smartPay, "SubscriptionCreated")
-        .withArgs(sub.address, getSubscriptionId(sub.address));
+    it("flags floating promises", async () => {
+      const { smartPay } = await loadFixture(setupFixture);
+      const txReceiptUnresolved = await smartPay.pause();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      expect(txReceiptUnresolved.wait()).to.be.reverted;
     });
 
-    it("increments user nonce on creation", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      let nonce = await smartPay.subscriptionNonce(sub.address);
-      expect(nonce).to.eq(1);
-
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      nonce = await smartPay.subscriptionNonce(sub.address);
-      expect(nonce).to.eq(2);
-    });
-
-    it("adds the user to active users on creation", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      const activeUsers = await smartPay.getActiveUsers();
-      expect(activeUsers).to.contain(sub.address);
-    });
-
-    it("emits a user activated event the first time", async () => {
-      await expect(smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0))
-        .to.emit(smartPay, "UserActivated")
-        .withArgs(sub.address);
-
-      await expect(smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0))
-        .not.to.emit(smartPay, "UserActivated")
-        .withArgs(sub.address);
-    });
-
-    it("keeps active user count the same on subsequent creation", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      let activeUsers = await smartPay.getActiveUsers();
-      expect(activeUsers).to.have.length(1);
-
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      activeUsers = await smartPay.getActiveUsers();
-      expect(activeUsers).to.have.length(1);
-    });
-
-    it("updates the user subscription count on creation", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      let activeSubscriptions = await smartPay.getUserSubscriptionCount(sub.address);
-      expect(activeSubscriptions).to.eq(1);
-
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      activeSubscriptions = await smartPay.getUserSubscriptionCount(sub.address);
-      expect(activeSubscriptions).to.eq(2);
-    });
-
-    it("adds the subscription id to the user subscriptions on creation", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      let subscriptions = await smartPay.getUserSubscriptions(sub.address);
-      expect(subscriptions).to.have.length(1);
-
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      subscriptions = await smartPay.getUserSubscriptions(sub.address);
-      expect(subscriptions).to.have.length(2);
+    it("sets the payment token", async () => {
+      const { smartPay, paymentToken } = await loadFixture(setupFixture);
+      const tokenAddress = await smartPay.ACCEPTED_PAYMENT_TOKEN();
+      expect(tokenAddress).to.eq(paymentToken.address);
     });
   });
 
-  describe("deactivation", () => {
-    it("emits a subscription deactivated event", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      const [subId] = await smartPay.getUserSubscriptions(sub.address);
+  describe("createSubscription", () => {
+    it("allows creating a subscription from a signed typed data structure", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
 
-      await expect(smartPay.connect(sub).deactivateSubscription(subId))
-        .to.emit(smartPay, "SubscriptionDeactivated")
-        .withArgs(sub.address, subId);
-    });
-
-    it("deletes the subscription", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      const [subId] = await smartPay.getUserSubscriptions(sub.address);
-
-      await smartPay.connect(sub).deactivateSubscription(subId);
-
-      const subscription = await smartPay.getSubscription(subId);
-      expect(subscription.owner).to.eq("0x0000000000000000000000000000000000000000");
-    });
-
-    it("reduces the number of user subscriptions by 1", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-
-      const countBefore = await smartPay.getUserSubscriptionCount(sub.address);
-
-      const subscriptions = await smartPay.getUserSubscriptions(sub.address);
-      const subId = subscriptions[0];
-
-      await smartPay.connect(sub).deactivateSubscription(subId);
-
-      const countAfter = await smartPay.getUserSubscriptionCount(sub.address);
-      expect(countBefore.sub(countAfter)).to.eq(1);
-    });
-
-    it("removes the user from active users", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-
-      const [subId1, subId2] = await smartPay.getUserSubscriptions(sub.address);
-
-      await smartPay.connect(sub).deactivateSubscription(subId1);
-
-      let activeUsers = await smartPay.getActiveUsers();
-      expect(activeUsers).to.contain(sub.address);
-
-      await smartPay.connect(sub).deactivateSubscription(subId2);
-
-      activeUsers = await smartPay.getActiveUsers();
-      expect(activeUsers).not.to.contain(sub.address);
-    });
-
-    it("throws if deactivator is not the owner", async () => {
-      await smartPay.connect(sub).createSubscription(123456, 0, tokenAddress, 0, reference, 0);
-      const [subId] = await smartPay.getUserSubscriptions(sub.address);
-
-      await expect(smartPay.deactivateSubscription(subId)).to.be.revertedWith(
-        `UnauthorizedExecutor("${deployer.address}")`,
+      const txReceipt = await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
       );
+
+      const event = await getSubscriptionCreatedEventData(txReceipt);
+      expect(event.subscriber).to.eq(subscriber.address);
+    });
+
+    it("emits all data required for off-chain storage", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      const txReceipt = await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      const event = await getSubscriptionCreatedEventData(txReceipt);
+
+      expect(event.subscriber).to.eq(subscriber.address);
+      expect(event.paymentToken).to.eq(paymentTokenContract.address);
+      expect(event.paymentAmount).to.eq(paymentAmount);
+      expect(event.startTime).to.eq(startTime);
+      expect(event.paymentReference).to.eq(paymentReference);
+      expect(event.totalPayments).to.eq(totalPayments);
+      expect(event.cadence).to.eq(cadence);
+    });
+
+    it("prevents creating a subscription without a valid signed message", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, bob } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: bob,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidSignature");
+    });
+
+    it("prevents creating a subscription without a payment amount", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "0",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidSubscription");
+    });
+
+    it("prevents creating a subscription without a start time", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: 0,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidSubscription");
+    });
+
+    it("prevents creating a subscription with an invalid payment token", async () => {
+      const { smartPay, subscriber } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: subscriber.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidPaymentToken");
+    });
+
+    it("prevents creating a subscription if any of the input parameters are changed", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          "2000000",
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidSignature");
+    });
+
+    it("prevents submitting a signature twice", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "SubscriptionAlreadyExists");
+    });
+
+    it("prevents creating a subscription if the contract has been paused", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+      await smartPay.pause();
+
+      const { paymentToken, startTime, paymentAmount, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay.createSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+          signature,
+        ),
+      ).to.be.revertedWith("Pausable: paused");
+    });
+  });
+
+  describe("deleteSubscription", () => {
+    it("allows the owner of a subscription to delete their subscription", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      const txReceipt = await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      const event = await getSubscriptionCreatedEventData(txReceipt);
+
+      let subscription = await smartPay.subscriptions(event.subscriptionId);
+      expect(subscription.startTime).to.eq(startTime);
+
+      await smartPay
+        .connect(subscriber)
+        .deleteSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        );
+
+      subscription = await smartPay.subscriptions(event.subscriptionId);
+      expect(subscription.startTime).to.eq(0);
+    });
+    it("prevents accounts from deleting subscriptions they do not own", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay.deleteSubscription(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.revertedWithCustomError(smartPay, "NotSubscriptionHolder");
+    });
+
+    it("reverts if the subscription does not exist", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await expect(
+        smartPay
+          .connect(subscriber)
+          .deleteSubscription(
+            subscriber.address,
+            paymentToken,
+            paymentAmount,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence,
+          ),
+      ).to.be.revertedWithCustomError(smartPay, "SubscriptionNotFound");
+    });
+
+    it('emits a "SubscriptionDeleted" event on successful deletion', async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "1000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay
+          .connect(subscriber)
+          .deleteSubscription(
+            subscriber.address,
+            paymentToken,
+            paymentAmount,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence,
+          ),
+      ).to.emit(smartPay, "SubscriptionDeleted");
+    });
+  });
+
+  describe("processSubscription", () => {
+    it("prevents charging a subscription when the contract is paused", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: Date.now(),
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await smartPay.pause();
+
+      await expect(
+        smartPay.processPayment(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
+    it("allows a valid payment to be charged", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, spritzPay } = await loadFixture(setupFixture);
+      await spritzPay.mock.payWithTokenSubscription.returns();
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(smartPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await smartPay.processPayment(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+      );
+    });
+
+    it("allows a valid payment to be charged", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, spritzPay } = await loadFixture(setupFixture);
+      await spritzPay.mock.payWithTokenSubscription.returns();
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(smartPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await smartPay.processPayment(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+      );
+    });
+    it("reverts if the call to the SpritzPay contract fails", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract, spritzPay } = await loadFixture(setupFixture);
+      await spritzPay.mock.payWithTokenSubscription.reverts();
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(smartPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay.processPayment(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.revertedWith("Mock revert");
+    });
+
+    it("reverts if the smart pay contract has not been given sufficient allowance", async () => {
+      const { smartPay, subscriber, paymentToken: paymentTokenContract } = await loadFixture(setupFixture);
+
+      const timestamp = Math.ceil(Date.now() / 1000);
+      const { paymentToken, paymentAmount, startTime, paymentReference, totalPayments, cadence, signature } =
+        await getSignedSubscription({
+          signer: subscriber,
+          contract: smartPay,
+          paymentToken: paymentTokenContract.address,
+          paymentAmount: "10000000",
+          startTime: timestamp,
+          totalPayments: 10,
+          paymentReference: reference,
+          cadence: 0,
+        });
+
+      await time.setNextBlockTimestamp(timestamp);
+
+      await smartPay.createSubscription(
+        subscriber.address,
+        paymentToken,
+        paymentAmount,
+        startTime,
+        totalPayments,
+        paymentReference,
+        cadence,
+        signature,
+      );
+
+      await expect(
+        smartPay.processPayment(
+          subscriber.address,
+          paymentToken,
+          paymentAmount,
+          startTime,
+          totalPayments,
+          paymentReference,
+          cadence,
+        ),
+      ).to.be.rejectedWith("ERC20: insufficient allowance");
     });
   });
 });
