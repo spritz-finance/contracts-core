@@ -3,10 +3,11 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./SpritzPayV2.sol";
 import "./lib/SubscriptionChargeDate.sol";
 
 /**
@@ -16,60 +17,44 @@ import "./lib/SubscriptionChargeDate.sol";
  * subscriptions, allows subscriptions to be created, validated and processed, but delegates the actual payment logic
  * to the SpritzPay contract.
  */
-contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
+contract SpritzSmartPay is EIP712, AccessControlEnumerable {
     using SafeERC20 for IERC20;
     using SubscriptionChargeDate for uint256;
 
-    uint256 private constant MAX_UINT = 2 ** 256 - 1;
-
-    bytes4 private constant SPRITZ_PAY_SELECTOR =
-        bytes4(keccak256("payWithTokenSubscription(address,address,uint256,bytes32)"));
+    bytes32 public constant PAYMENT_PROCESSOR_ROLE = keccak256("PAYMENT_PROCESSOR_ROLE");
 
     bytes32 public constant SUBSCRIPTION_TYPEHASH =
         keccak256(
-            "Subscription(address paymentToken,uint256 paymentAmount,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,uint8 cadence)"
+            "Subscription(address paymentToken,uint256 paymentAmountMax,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,uint8 cadence,uint8 subscriptionType)"
         );
 
     event SubscriptionCreated(
         address indexed subscriber,
-        uint256 indexed subscriptionId,
+        bytes32 indexed subscriptionId,
         address indexed paymentToken,
-        uint256 paymentAmount,
+        uint256 paymentAmountMax,
         uint256 startTime,
         uint256 totalPayments,
         bytes32 paymentReference,
-        SubscriptionCadence cadence
+        SubscriptionCadence cadence,
+        SubscriptionType subscriptionType
     );
 
-    event PaymentProcessed(
-        address indexed subscriber,
-        uint256 indexed subscriptionId,
-        address indexed paymentToken,
-        uint256 paymentAmount,
-        bytes32 paymentReference
-    );
+    event PaymentProcessed(address indexed subscriber, bytes32 indexed subscriptionId);
 
-    event SubscriptionDeleted(address indexed subscriber, uint256 indexed subscriptionId);
+    event SubscriptionDeleted(bytes32 indexed subscriptionId);
 
-    error ChargeSubscriptionFailed(address owner, bytes32 subscriptionId, uint256 amount);
-
-    error InvalidPaymentCharge(uint256 subscriptionId, uint256 date);
-
-    error UnauthorizedExecutor(address caller);
-
-    error InvalidAddress();
-
-    error SpritzPayPaymentFailure();
+    error InvalidPaymentCharge(bytes32 subscriptionId, uint256 date);
 
     error InvalidSubscription();
 
-    error InvalidPaymentToken();
+    error InvalidPaymentValue();
 
-    error NotSubscriptionHolder(address caller);
+    error InvalidSubscriptionType();
 
-    error SubscriptionAlreadyExists(uint256 subscriptionId);
+    error SubscriptionAlreadyExists(bytes32 subscriptionId);
 
-    error SubscriptionNotFound(uint256 subscriptionId);
+    error SubscriptionNotFound(bytes32 subscriptionId);
 
     error InvalidSignature();
 
@@ -78,6 +63,12 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
         MONTHLY,
         WEEKLY,
         DAILY
+    }
+
+    /// @notice The type of the subscription, paying via swap or direct token transfer
+    enum SubscriptionType {
+        DIRECT,
+        SWAP
     }
 
     /// @dev components of an ECDSA signature
@@ -102,18 +93,23 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
         uint256 lastPaymentTimestamp;
     }
 
-    /// @notice The wallet owned by spritz that receives payments
-    address internal immutable SPRITZ_PAY_ADDRESS;
+    struct SwapParams {
+        uint256 sourceTokenAmountMax;
+        uint256 paymentTokenAmount;
+        uint256 deadline;
+        bytes swapData;
+    }
 
-    /// @notice The address of the stablecoin used to make payments
-    address public immutable ACCEPTED_PAYMENT_TOKEN;
+    /// @notice The wallet owned by spritz that receives payments
+    SpritzPayV2 internal immutable spritzPay;
 
     /// @notice Mapping of the subscription id to the subscription on-chain data
-    mapping(uint256 => Subscription) public subscriptions;
+    mapping(bytes32 => Subscription) public subscriptions;
 
-    constructor(address spritzPay, address paymentToken) EIP712("SpritzSmartPay", version()) {
-        SPRITZ_PAY_ADDRESS = spritzPay;
-        ACCEPTED_PAYMENT_TOKEN = paymentToken;
+    constructor(address admin, address _spritzPay, address paymentBot) EIP712("SpritzSmartPay", version()) {
+        spritzPay = SpritzPayV2(_spritzPay);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PAYMENT_PROCESSOR_ROLE, paymentBot);
     }
 
     function version() public pure returns (string memory) {
@@ -124,7 +120,7 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
      * @notice Create a subscription on behalf of a user using an EIP-712 signature
      * @param _subscriber The address of user who the subscription belongs to
      * @param paymentToken The address of the token used for payment
-     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
+     * @param paymentAmountMax The maximum amount the subscription is charged each time the subscription is processed
      * @param startTime The timestamp when the subscription should first be charged
      * @param totalPayments The total number of payments the subscription is allowed to process
      * @param paymentReference Arbitrary payment reference
@@ -134,18 +130,18 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
      * This allows us to save significant gas by only storing critcal/variable data on-chain, and using a hash to validate the off-chain
      * data
      */
-    function createSubscription(
+    function createSubscriptionBySignature(
         address _subscriber,
         address paymentToken,
-        uint256 paymentAmount,
+        uint256 paymentAmountMax,
         uint256 startTime,
         uint256 totalPayments,
         bytes32 paymentReference,
         SubscriptionCadence cadence,
+        SubscriptionType subscriptionType,
         Signature calldata signature
-    ) external whenNotPaused {
-        if (paymentAmount == 0 || startTime == 0) revert InvalidSubscription();
-        if (paymentToken != ACCEPTED_PAYMENT_TOKEN) revert InvalidPaymentToken();
+    ) external {
+        if (paymentAmountMax == 0 || startTime == 0) revert InvalidSubscription();
 
         address subscriber = ECDSA.recover(
             _hashTypedDataV4(
@@ -153,11 +149,12 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
                     abi.encode(
                         SUBSCRIPTION_TYPEHASH,
                         paymentToken,
-                        paymentAmount,
+                        paymentAmountMax,
                         startTime,
                         totalPayments,
                         paymentReference,
-                        cadence
+                        cadence,
+                        subscriptionType
                     )
                 )
             ),
@@ -167,14 +164,15 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
         );
         if (_subscriber != subscriber) revert InvalidSignature();
 
-        uint256 subscriptionId = hashSubscription(
+        bytes32 subscriptionId = hashSubscription(
             subscriber,
             paymentToken,
-            paymentAmount,
+            paymentAmountMax,
             startTime,
             totalPayments,
             paymentReference,
-            cadence
+            cadence,
+            subscriptionType
         );
 
         Subscription storage subscription = subscriptions[subscriptionId];
@@ -186,12 +184,105 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
             subscriber,
             subscriptionId,
             paymentToken,
-            paymentAmount,
+            paymentAmountMax,
             startTime,
             totalPayments,
             paymentReference,
-            cadence
+            cadence,
+            subscriptionType
         );
+    }
+
+    /**
+     * @notice Create a subscription
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmountMax The maximum amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
+     * @dev The bulk of the subscription data is emitted in the "SubscriptionCreated" event and will be stored off-chain.
+     * This allows us to save significant gas by only storing critcal/variable data on-chain, and using a hash to validate the off-chain
+     * data
+     */
+    function createSubscription(
+        address paymentToken,
+        uint256 paymentAmountMax,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence,
+        SubscriptionType subscriptionType
+    ) external {
+        if (paymentAmountMax == 0 || startTime == 0) revert InvalidSubscription();
+
+        bytes32 subscriptionId = hashSubscription(
+            msg.sender,
+            paymentToken,
+            paymentAmountMax,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence,
+            subscriptionType
+        );
+
+        Subscription storage subscription = subscriptions[subscriptionId];
+        if (subscription.startTime > 0) revert SubscriptionAlreadyExists(subscriptionId);
+
+        subscription.startTime = startTime;
+
+        emit SubscriptionCreated(
+            msg.sender,
+            subscriptionId,
+            paymentToken,
+            paymentAmountMax,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence,
+            subscriptionType
+        );
+    }
+
+    /**
+     * @notice Charges the given subscription and sends the payment to the SpritzPay contract
+     * @param subscriber The account who owns the subscription
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmountMax The amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
+     */
+    function processTokenPayment(
+        address subscriber,
+        uint256 paymentAmount,
+        address paymentToken,
+        uint256 paymentAmountMax,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence,
+        SubscriptionType subscriptionType
+    ) external onlyRole(PAYMENT_PROCESSOR_ROLE) {
+        if (subscriptionType != SubscriptionType.DIRECT) revert InvalidSubscriptionType();
+
+        bytes32 subscriptionId = _processSubscriptionCharge(
+            subscriber,
+            paymentToken,
+            paymentAmountMax,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence,
+            subscriptionType
+        );
+        if (paymentAmount > paymentAmountMax) revert InvalidPaymentValue();
+
+        spritzPay.delegatedPayWithToken(subscriber, paymentToken, paymentAmount, paymentReference);
+
+        emit PaymentProcessed(subscriber, subscriptionId);
     }
 
     /**
@@ -204,23 +295,62 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
      * @param paymentReference Arbitrary payment reference
      * @param cadence The frequency at which the subscription can be charged
      */
-    function processPayment(
+    function processSwapPayment(
         address subscriber,
         address paymentToken,
         uint256 paymentAmount,
         uint256 startTime,
         uint256 totalPayments,
         bytes32 paymentReference,
-        SubscriptionCadence cadence
-    ) external whenNotPaused {
-        uint256 subscriptionId = hashSubscription(
+        SubscriptionCadence cadence,
+        SubscriptionType subscriptionType,
+        SwapParams calldata swapParams
+    ) external onlyRole(PAYMENT_PROCESSOR_ROLE) {
+        if (subscriptionType != SubscriptionType.SWAP) revert InvalidSubscriptionType();
+
+        bytes32 subscriptionId = _processSubscriptionCharge(
             subscriber,
             paymentToken,
             paymentAmount,
             startTime,
             totalPayments,
             paymentReference,
-            cadence
+            cadence,
+            subscriptionType
+        );
+
+        spritzPay.delegatedPayWithSwap(
+            subscriber,
+            paymentToken,
+            swapParams.sourceTokenAmountMax,
+            swapParams.paymentTokenAmount,
+            paymentReference,
+            swapParams.deadline,
+            swapParams.swapData
+        );
+
+        emit PaymentProcessed(subscriber, subscriptionId);
+    }
+
+    function _processSubscriptionCharge(
+        address subscriber,
+        address paymentToken,
+        uint256 paymentAmountMax,
+        uint256 startTime,
+        uint256 totalPayments,
+        bytes32 paymentReference,
+        SubscriptionCadence cadence,
+        SubscriptionType subscriptionType
+    ) private returns (bytes32 subscriptionId) {
+        subscriptionId = hashSubscription(
+            subscriber,
+            paymentToken,
+            paymentAmountMax,
+            startTime,
+            totalPayments,
+            paymentReference,
+            cadence,
+            subscriptionType
         );
         Subscription storage subscription = subscriptions[subscriptionId];
         if (subscription.startTime == 0) revert SubscriptionNotFound(subscriptionId);
@@ -237,51 +367,18 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
         unchecked {
             subscription.paymentCount += 1;
         }
-
-        // pull funds from user
-        IERC20 token = IERC20(paymentToken);
-        token.safeTransferFrom(subscriber, address(this), paymentAmount);
-
-        initiateSpritzPayPayment(subscriber, token, paymentAmount, paymentReference);
-
-        emit PaymentProcessed(subscriber, subscriptionId, address(token), paymentAmount, paymentReference);
     }
 
     /**
-     * @notice Allows a user to delete their subscription
-     * @param subscriber The account who owns the subscription
-     * @param paymentToken The address of the token used for payment
-     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
-     * @param startTime The timestamp when the subscription should first be charged
-     * @param totalPayments The total number of payments the subscription is allowed to process
-     * @param paymentReference Arbitrary payment reference
-     * @param cadence The frequency at which the subscription can be charged
+     * @notice Allows subscriptions to be cleaned up by the processor bot
+     * @param subscriptionId The ID of the subscription
      */
-    function deleteSubscription(
-        address subscriber,
-        address paymentToken,
-        uint256 paymentAmount,
-        uint256 startTime,
-        uint256 totalPayments,
-        bytes32 paymentReference,
-        SubscriptionCadence cadence
-    ) external {
-        if (msg.sender != subscriber) revert NotSubscriptionHolder(msg.sender);
-
-        uint256 subscriptionId = hashSubscription(
-            subscriber,
-            paymentToken,
-            paymentAmount,
-            startTime,
-            totalPayments,
-            paymentReference,
-            cadence
-        );
+    function deleteSubscription(bytes32 subscriptionId) external onlyRole(PAYMENT_PROCESSOR_ROLE) {
         if (subscriptions[subscriptionId].startTime == 0) revert SubscriptionNotFound(subscriptionId);
 
         delete subscriptions[subscriptionId];
 
-        emit SubscriptionDeleted(subscriber, subscriptionId);
+        emit SubscriptionDeleted(subscriptionId);
     }
 
     /**
@@ -303,66 +400,23 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
         uint256 startTime,
         uint256 totalPayments,
         bytes32 paymentReference,
-        SubscriptionCadence cadence
-    ) public view returns (uint256) {
+        SubscriptionCadence cadence,
+        SubscriptionType subscriptionType
+    ) public view returns (bytes32) {
         return
-            uint256(
-                keccak256(
-                    abi.encode(
-                        subscriber,
-                        paymentToken,
-                        paymentAmount,
-                        startTime,
-                        totalPayments,
-                        paymentReference,
-                        cadence,
-                        block.chainid
-                    )
+            keccak256(
+                abi.encode(
+                    subscriber,
+                    paymentToken,
+                    paymentAmount,
+                    startTime,
+                    totalPayments,
+                    paymentReference,
+                    cadence,
+                    subscriptionType,
+                    block.chainid
                 )
             );
-    }
-
-    /**
-     * @notice Initiates a payment request to the SpritzPay contract on behalf of the subscriber
-     * @param subscriber The account who the payment is being made on behalf of
-     * @param paymentToken The token being used for payment
-     * @param paymentAmount The amount of the token being transferred
-     * @param paymentReference Arbitrary reference ID of the related payment
-     */
-    function initiateSpritzPayPayment(
-        address subscriber,
-        IERC20 paymentToken,
-        uint256 paymentAmount,
-        bytes32 paymentReference
-    ) private {
-        // Check that SpritzPay has spending allowance for the token
-        uint256 allowance = paymentToken.allowance(address(this), SPRITZ_PAY_ADDRESS);
-        if (allowance < paymentAmount) {
-            paymentToken.safeIncreaseAllowance(SPRITZ_PAY_ADDRESS, MAX_UINT - allowance);
-        }
-
-        // call to the SpritzPay contract to issue payment event
-        (bool success, bytes memory returndata) = SPRITZ_PAY_ADDRESS.call(
-            abi.encodeWithSelector(
-                SPRITZ_PAY_SELECTOR,
-                subscriber,
-                address(paymentToken),
-                paymentAmount,
-                paymentReference
-            )
-        );
-
-        if (!success) {
-            /// Look for the revert reason and return it if found
-            if (returndata.length > 0) {
-                assembly {
-                    let returndata_size := mload(returndata)
-                    revert(add(32, returndata), returndata_size)
-                }
-            } else {
-                revert SpritzPayPaymentFailure();
-            }
-        }
     }
 
     /**
@@ -396,17 +450,11 @@ contract SpritzSmartPay is Context, EIP712, Pausable, Ownable {
 
     /* ========== Admin Functionality ========== */
 
-    /**
-     * @notice Allow the contract admin to pause the contract
-     */
-    function pause() external onlyOwner {
-        _pause();
+    function revokePaymentProcessor(address processor) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(PAYMENT_PROCESSOR_ROLE, processor);
     }
 
-    /**
-     * @notice Allow the contract admin to unpause the contract
-     */
-    function unpause() external onlyOwner {
-        _unpause();
+    function grantPaymentProcessor(address processor) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(PAYMENT_PROCESSOR_ROLE, processor);
     }
 }

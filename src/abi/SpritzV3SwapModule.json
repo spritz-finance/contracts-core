@@ -1,0 +1,10 @@
+[
+  "constructor(address,address)",
+  "error FailedRefund()",
+  "error InvalidNativeSwap()",
+  "function decodeSwapData(bytes) pure returns (address, address)",
+  "function exactOutputNativeSwap(tuple(address,address,uint256,uint256,uint256,bytes)) payable returns (uint256)",
+  "function exactOutputSwap(tuple(address,address,uint256,uint256,uint256,bytes)) returns (uint256)",
+  "function swapTarget() view returns (address)",
+  "function weth() view returns (address)"
+]

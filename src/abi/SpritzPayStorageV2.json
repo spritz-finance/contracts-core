@@ -11,6 +11,7 @@
   "event RoleRevoked(bytes32 indexed,address indexed,address indexed)",
   "function DEFAULT_ADMIN_ROLE() view returns (bytes32)",
   "function PAUSER_ROLE() view returns (bytes32)",
+  "function PAYMENT_DELEGATE_ROLE() view returns (bytes32)",
   "function acceptedPaymentTokens() view returns (address[])",
   "function getRoleAdmin(bytes32) view returns (bytes32)",
   "function getRoleMember(bytes32,uint256) view returns (address)",
@@ -21,6 +22,7 @@
   "function renounceRole(bytes32,address)",
   "function revokeRole(bytes32,address)",
   "function supportsInterface(bytes4) view returns (bool)",
+  "function swapModule() view returns (address)",
   "function swapTarget() view returns (address)",
   "function v3SwapTarget() view returns (address)"
 ]

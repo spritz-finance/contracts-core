@@ -6,6 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
+import "../interfaces/SpritzSwapModule.sol";
+
 contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
@@ -49,8 +51,10 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
 
     address internal _v3SwapTarget;
     address internal _smartPay;
+    SpritzSwapModule internal _swapModule;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant PAYMENT_DELEGATE_ROLE = keccak256("PAYMENT_DELEGATE_ROLE");
 
     modifier onlyAcceptedToken(address paymentToken) {
         if (!_acceptedPaymentTokens.contains(paymentToken)) {
@@ -137,11 +141,26 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
     }
 
     /**
+     * @dev Returns the address of the swap target
+     */
+    function swapModule() public view virtual returns (address) {
+        return address(_swapModule);
+    }
+
+    /**
      * @dev Sets a new address for the wrapped native token
      */
     function _setWrappedNative(address newWrappedNative) internal virtual {
         if (newWrappedNative == address(0)) revert SetZeroAddress();
         _wrappedNative = newWrappedNative;
+    }
+
+    /**
+     * @dev Sets a new address for the wrapped native token
+     */
+    function _setSwapModule(address newSwapModule) internal virtual {
+        if (newSwapModule == address(0)) revert SetZeroAddress();
+        _swapModule = SpritzSwapModule(newSwapModule);
     }
 
     /**

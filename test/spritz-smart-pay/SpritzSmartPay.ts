@@ -13,7 +13,7 @@ const SpritzPay = require("../../artifacts/contracts/SpritzPayV2.sol/SpritzPayV2
 
 const reference = formatPaymentReference("6304ca0d2f5acf6d69b3c58e");
 
-describe.only("SpritzSmartPay", () => {
+describe("SpritzSmartPay", () => {
   const setupFixture = async () => {
     const [deployer, subscriber, bob] = await ethers.getSigners();
 

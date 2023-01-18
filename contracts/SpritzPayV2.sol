@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 
 pragma solidity ^0.8.7;
-pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import "./interfaces/IWETH9.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./interfaces/SpritzSwapModule.sol";
 import "./lib/SpritzPayStorageV2.sol";
 
 /**
@@ -25,17 +23,9 @@ contract SpritzPayV2 is
     ReentrancyGuardUpgradeable,
     SpritzPayStorageV2
 {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeERC20 for IERC20;
 
-    uint256 private constant MAX_UINT = 2 ** 256 - 1;
-
-    error FailedRefund(address tokenAddress, uint256 amount);
-
-    error InsufficientValue(uint256 required, uint256 amount);
-
-    error V2RouterNotConfigured();
-
-    error V3RouterNotConfigured();
+    error InvalidSourceToken();
 
     /**
      * @dev Emitted when a payment has been sent
@@ -76,36 +66,42 @@ contract SpritzPayV2 is
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference
-    ) external whenNotPaused onlyAcceptedToken(paymentTokenAddress) {
-        emit Payment(
-            _paymentRecipient,
-            msg.sender,
-            paymentTokenAddress,
-            paymentTokenAmount,
-            paymentTokenAddress,
-            paymentTokenAmount,
-            paymentReference
-        );
-
-        IERC20Upgradeable(paymentTokenAddress).safeTransferFrom(msg.sender, _paymentRecipient, paymentTokenAmount);
+    ) external whenNotPaused {
+        _payWithToken(msg.sender, paymentTokenAddress, paymentTokenAmount, paymentReference);
     }
 
     /**
-     * @notice Pay by direct stablecoin transfer from SmartPay subscription contract
-     * @param payee Address of account initiating the payment
+     * @notice Pay by direct stablecoin transfer from an authorized delegate
+     * @param from Address of the payment sender
      * @param paymentTokenAddress Address of the target payment token
      * @param paymentTokenAmount Payment amount, denominated in target payment token
      * @param paymentReference Arbitrary reference ID of the related payment
      */
-    function payWithTokenSubscription(
-        address payee,
+    function delegatedPayWithToken(
+        address from,
         address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference
-    ) external whenNotPaused onlySmartPay {
+    ) external whenNotPaused onlyRole(PAYMENT_DELEGATE_ROLE) {
+        _payWithToken(from, paymentTokenAddress, paymentTokenAmount, paymentReference);
+    }
+
+    /**
+     * @notice Initiate a stablecoin transfer from sender to recipient
+     * @param from Address of the payment sender
+     * @param paymentTokenAddress Address of the target payment token
+     * @param paymentTokenAmount Payment amount, denominated in target payment token
+     * @param paymentReference Arbitrary reference ID of the related payment
+     */
+    function _payWithToken(
+        address from,
+        address paymentTokenAddress,
+        uint256 paymentTokenAmount,
+        bytes32 paymentReference
+    ) private onlyAcceptedToken(paymentTokenAddress) {
         emit Payment(
             _paymentRecipient,
-            payee,
+            from,
             paymentTokenAddress,
             paymentTokenAmount,
             paymentTokenAddress,
@@ -113,7 +109,7 @@ contract SpritzPayV2 is
             paymentReference
         );
 
-        IERC20Upgradeable(paymentTokenAddress).safeTransferFrom(msg.sender, _paymentRecipient, paymentTokenAmount);
+        IERC20(paymentTokenAddress).safeTransferFrom(from, _paymentRecipient, paymentTokenAmount);
     }
 
     /**
@@ -126,163 +122,120 @@ contract SpritzPayV2 is
      * @param deadline Swap deadline
      */
     function payWithSwap(
-        address[] calldata path,
+        address sourceTokenAddress,
         uint256 sourceTokenAmountMax,
         uint256 paymentTokenAmount,
         bytes32 paymentReference,
-        uint256 deadline
-    ) external payable whenNotPaused nonReentrant {
-        if (_swapTarget == address(0)) revert V2RouterNotConfigured();
-
-        address sourceTokenAddress = path[0];
-        address paymentTokenAddress = path[path.length - 1];
-
-        if (!isAcceptedToken(paymentTokenAddress)) {
-            revert NonAcceptedToken(paymentTokenAddress);
-        }
-
-        IERC20Upgradeable sourceToken = IERC20Upgradeable(sourceTokenAddress);
-        bool isNativeSwap = sourceTokenAddress == _wrappedNative && msg.value > 0;
-
-        // If swap involves non-native token, transfer token in, and grant allowance to
-        // the swap router
-        if (!isNativeSwap) {
-            //Ensure our contract gives sufficient allowance to swap target
-            uint256 allowance = sourceToken.allowance(address(this), _swapTarget);
-            if (allowance < sourceTokenAmountMax) {
-                uint256 allowanceIncrease;
-                unchecked {
-                    allowanceIncrease = MAX_UINT - allowance;
-                }
-                sourceToken.safeIncreaseAllowance(_swapTarget, allowanceIncrease);
-            }
-
-            //Transfer from user to our contract
-            sourceToken.safeTransferFrom(msg.sender, address(this), sourceTokenAmountMax);
-        }
-
-        uint256[] memory amounts;
-
-        {
-            //Execute the swap
-            IUniswapV2Router02 router = IUniswapV2Router02(_swapTarget);
-            if (!isNativeSwap) {
-                amounts = router.swapTokensForExactTokens(
-                    paymentTokenAmount,
-                    sourceTokenAmountMax,
-                    path,
-                    _paymentRecipient,
-                    deadline
-                );
-            } else {
-                if (msg.value < sourceTokenAmountMax) revert InsufficientValue(sourceTokenAmountMax, msg.value);
-                amounts = router.swapETHForExactTokens{ value: msg.value }(
-                    paymentTokenAmount,
-                    path,
-                    _paymentRecipient,
-                    deadline
-                );
-            }
-        }
-
-        uint256 sourceTokenSpentAmount = amounts[0];
-
-        emit Payment(
-            _paymentRecipient,
+        uint256 deadline,
+        bytes calldata path
+    ) external whenNotPaused {
+        _payWithSwap(
             msg.sender,
             sourceTokenAddress,
-            sourceTokenSpentAmount,
-            paymentTokenAddress,
+            sourceTokenAmountMax,
             paymentTokenAmount,
-            paymentReference
+            paymentReference,
+            deadline,
+            path
         );
-
-        //Refund remaining balance left after the swap to the user
-        uint256 remainingBalance = sourceTokenAmountMax - sourceTokenSpentAmount;
-        if (remainingBalance > 0) {
-            if (isNativeSwap) {
-                (bool success, ) = msg.sender.call{ value: remainingBalance }("");
-                if (!success) revert FailedRefund(sourceTokenAddress, remainingBalance);
-            } else {
-                sourceToken.safeTransfer(msg.sender, remainingBalance);
-            }
-        }
     }
 
     /**
-     * @notice Pay by swapping token or with native currency, using uniswapv3 as swap provider. Uses
-     *          Uniswap exact output trade type
-     * @param path The encoded path of the trade
-     * @param sourceTokenAddress The address of the input token being swapped
+     * @notice Pay by swapping token for an accepted output token from an authorized delegate. Uses SpritzSwapModule to facilitate the swap
      * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
-     * @param paymentTokenAddress The address of the payment token
      * @param paymentTokenAmount Exact Amount of the target payment token
      * @param paymentReference Arbitrary reference ID of the related payment
      * @param deadline Swap deadline
+     * @param path Swap path
      */
-    function payWithV3Swap(
-        bytes calldata path,
+    function delegatedPayWithSwap(
+        address from,
         address sourceTokenAddress,
         uint256 sourceTokenAmountMax,
-        address paymentTokenAddress,
         uint256 paymentTokenAmount,
         bytes32 paymentReference,
-        uint256 deadline
-    ) external payable whenNotPaused nonReentrant {
-        if (_v3SwapTarget == address(0)) revert V3RouterNotConfigured();
-        if (!isAcceptedToken(paymentTokenAddress)) {
-            revert NonAcceptedToken(paymentTokenAddress);
-        }
+        uint256 deadline,
+        bytes calldata path
+    ) external whenNotPaused onlyRole(PAYMENT_DELEGATE_ROLE) {
+        _payWithSwap(
+            from,
+            sourceTokenAddress,
+            sourceTokenAmountMax,
+            paymentTokenAmount,
+            paymentReference,
+            deadline,
+            path
+        );
+    }
 
-        bool isNativeSwap = sourceTokenAddress == _wrappedNative && msg.value > 0;
-        IERC20Upgradeable sourceToken = IERC20Upgradeable(sourceTokenAddress);
+    function _payWithSwap(
+        address from,
+        address sourceTokenAddress,
+        uint256 sourceTokenAmountMax,
+        uint256 paymentTokenAmount,
+        bytes32 paymentReference,
+        uint256 deadline,
+        bytes calldata path
+    ) private {
+        (address sourceToken, address paymentToken) = _swapModule.decodeSwapData(path);
 
-        if (isNativeSwap) {
-            if (msg.value < sourceTokenAmountMax) revert InsufficientValue(sourceTokenAmountMax, msg.value);
-            // Wrap Ether
-            IWETH9(sourceTokenAddress).deposit{ value: sourceTokenAmountMax }();
-        } else {
-            //Transfer from user to our contract
-            sourceToken.safeTransferFrom(msg.sender, address(this), sourceTokenAmountMax);
-        }
+        if (sourceTokenAddress != sourceToken) revert InvalidSourceToken();
+        if (!isAcceptedToken(paymentToken)) revert NonAcceptedToken(paymentToken);
 
-        //Ensure our contract gives sufficient allowance to swap target
-        sourceToken.safeIncreaseAllowance(_v3SwapTarget, sourceTokenAmountMax);
+        IERC20(sourceToken).safeTransferFrom(from, address(_swapModule), sourceTokenAmountMax);
 
-        uint256 sourceTokenSpent;
-        {
-            ISwapRouter.ExactOutputParams memory params = ISwapRouter.ExactOutputParams({
-                path: path,
-                recipient: _paymentRecipient,
+        uint256 sourceTokenAmountSpent = _swapModule.exactOutputSwap(
+            SpritzSwapModule.ExactOutputParams(
+                _paymentRecipient,
+                from,
+                sourceTokenAmountMax,
+                paymentTokenAmount,
+                deadline,
+                path
+            )
+        );
+
+        emit Payment(
+            _paymentRecipient,
+            from,
+            sourceToken,
+            sourceTokenAmountSpent,
+            paymentToken,
+            paymentTokenAmount,
+            paymentReference
+        );
+    }
+
+    /**
+     *
+     */
+    function payWithNativeSwap(
+        uint256 sourceTokenAmountMax,
+        uint256 paymentTokenAmount,
+        bytes32 paymentReference,
+        uint256 deadline,
+        bytes calldata path
+    ) external payable whenNotPaused {
+        (address sourceToken, address paymentToken) = _swapModule.decodeSwapData(path);
+        if (!isAcceptedToken(paymentToken)) revert NonAcceptedToken(paymentToken);
+
+        uint256 sourceTokenAmountSpent = _swapModule.exactOutputNativeSwap{ value: sourceTokenAmountMax }(
+            SpritzSwapModule.ExactOutputParams({
+                to: _paymentRecipient,
+                from: msg.sender,
+                inputTokenAmountMax: sourceTokenAmountMax,
+                paymentTokenAmount: paymentTokenAmount,
                 deadline: deadline,
-                amountOut: paymentTokenAmount,
-                amountInMaximum: sourceTokenAmountMax
-            });
-
-            ISwapRouter swapRouter = ISwapRouter(_v3SwapTarget);
-            sourceTokenSpent = swapRouter.exactOutput(params);
-        }
-        uint256 remainingBalance = sourceTokenAmountMax - sourceTokenSpent;
-
-        // reset swap router allowance
-        sourceToken.safeApprove(_v3SwapTarget, 0);
-
-        if (remainingBalance > 0) {
-            if (isNativeSwap) {
-                IWETH9(sourceTokenAddress).withdraw(remainingBalance);
-                (bool success, ) = msg.sender.call{ value: remainingBalance }("");
-                if (!success) revert FailedRefund(sourceTokenAddress, remainingBalance);
-            } else {
-                sourceToken.safeTransfer(msg.sender, remainingBalance);
-            }
-        }
+                swapData: path
+            })
+        );
 
         emit Payment(
             _paymentRecipient,
             msg.sender,
-            sourceTokenAddress,
-            sourceTokenSpent,
-            paymentTokenAddress,
+            sourceToken,
+            sourceTokenAmountSpent,
+            paymentToken,
             paymentTokenAmount,
             paymentReference
         );
@@ -291,9 +244,6 @@ contract SpritzPayV2 is
     /*
      * Admin functions
      */
-
-    receive() external payable {}
-
     function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
@@ -306,8 +256,8 @@ contract SpritzPayV2 is
         _setPaymentRecipient(newPaymentRecipient);
     }
 
-    function setV3SwapTarget(address newSwapTarget) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setV3SwapTarget(newSwapTarget);
+    function setSwapModule(address newSwapTarget) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setSwapModule(newSwapTarget);
     }
 
     function setSmartPayAddress(address swapPayAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
