@@ -285,4 +285,12 @@ contract SpritzPayV2 is
     function removePaymentToken(address newToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _removePaymentToken(newToken);
     }
+
+    function revokePaymentDelegate(address processor) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(PAYMENT_DELEGATE_ROLE, processor);
+    }
+
+    function grantPaymentDelegate(address processor) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(PAYMENT_DELEGATE_ROLE, processor);
+    }
 }

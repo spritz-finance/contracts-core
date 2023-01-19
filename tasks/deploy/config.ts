@@ -39,6 +39,7 @@ import {
 
 const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const contractConfig: Record<string, Record<string, { proxy: string; args: any[] }>> = {
   staging: {
     "polygon-mainnet": {

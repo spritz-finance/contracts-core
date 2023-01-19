@@ -264,7 +264,7 @@ contract SpritzSmartPay_Old is Context, Pausable, Ownable {
         subscription.paymentCount += 1;
         uint256 paymentTokenAmount = tokenAmount(subscription.paymentAmount, subscription.paymentToken);
 
-        chargeSubscription(subscription, subscriptionId, paymentTokenAmount);
+        chargeSubscription(subscription, paymentTokenAmount);
 
         checkSpirtzPayApproval(subscription.paymentToken, paymentTokenAmount);
         // spritzPay.call(abi.encodeWithSignature('payWithToken(address,uint256,bytes32)', ))
@@ -313,10 +313,9 @@ contract SpritzSmartPay_Old is Context, Pausable, Ownable {
     /**
      * @notice Attempt to withdraw funds from users wallet
      * @param subscription The subscription being charged
-     * @param subscriptionId The id of the subscription
      * @param amount The amount of the subscription payment token to be charged
      */
-    function chargeSubscription(Subscription storage subscription, bytes32 subscriptionId, uint256 amount) private {
+    function chargeSubscription(Subscription storage subscription, uint256 amount) private {
         IERC20Upgradeable token = IERC20Upgradeable(subscription.paymentToken);
         token.safeTransferFrom(subscription.owner, address(this), amount);
     }
