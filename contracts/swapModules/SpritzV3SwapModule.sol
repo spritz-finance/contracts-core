@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../interfaces/IWETH9.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+
 import "../interfaces/ISpritzSwapModule.sol";
+import "../interfaces/IWETH9.sol";
 import "../lib/BytesAddressLib.sol";
 
 pragma solidity ^0.8.7;
