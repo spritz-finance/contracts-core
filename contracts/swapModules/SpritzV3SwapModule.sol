@@ -25,6 +25,12 @@ contract SpritzV3SwapModule is SpritzSwapModule {
         weth = _weth;
     }
 
+    /**
+     * Decode the swap data that will be passed to the swap router
+     * @param swapData the bytes swap data to be decoded
+     * @return inputTokenAddress the address of the input token to be swapped
+     * @return outputTokenAddress the address of the output token
+     */
     function decodeSwapData(
         bytes calldata swapData
     ) external pure override returns (address inputTokenAddress, address outputTokenAddress) {

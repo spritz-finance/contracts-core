@@ -7,20 +7,22 @@ import { SpritzSmartPay } from "../../../src/types";
 const subscriptionMessageData = async (
   contract: SpritzSmartPay,
   paymentToken: string,
-  paymentAmount: string,
+  paymentAmountMax: string,
   startTime: number,
   totalPayments: number,
   paymentReference: string,
   cadence: number,
+  subscriptionType: number,
 ) => {
-  //"Subscription(address paymentToken,uint256 paymentAmount,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,SubscriptionCadence cadence)"
+  //"Subscription(address paymentToken,uint256 paymentAmountMax,uint256 startTime,uint256 totalPayments,bytes32 paymentReference,SubscriptionCadence cadence)"
   const subscription = [
     { name: "paymentToken", type: "address" },
-    { name: "paymentAmount", type: "uint256" },
+    { name: "paymentAmountMax", type: "uint256" },
     { name: "startTime", type: "uint256" },
     { name: "totalPayments", type: "uint256" },
     { name: "paymentReference", type: "bytes32" },
     { name: "cadence", type: "uint8" },
+    { name: "subscriptionType", type: "uint8" },
   ];
   const version = await contract.version();
 
@@ -38,11 +40,12 @@ const subscriptionMessageData = async (
     },
     {
       paymentToken,
-      paymentAmount,
+      paymentAmountMax,
       startTime,
       totalPayments,
       paymentReference,
       cadence,
+      subscriptionType,
     },
   ] as [TypedDataDomain, Record<string, TypedDataField[]>, Record<string, string | number>];
 };
@@ -51,29 +54,32 @@ export const getSignedSubscription = async ({
   signer,
   contract,
   paymentToken,
-  paymentAmount,
+  paymentAmountMax,
   startTime,
   totalPayments,
   paymentReference,
   cadence,
+  subscriptionType,
 }: {
   signer: SignerWithAddress;
   contract: SpritzSmartPay;
   paymentToken: string;
-  paymentAmount: string;
+  paymentAmountMax: string;
   startTime: number;
   totalPayments: number;
   paymentReference: string;
   cadence: number;
+  subscriptionType: number;
 }) => {
   const data = await subscriptionMessageData(
     contract,
     paymentToken,
-    paymentAmount,
+    paymentAmountMax,
     startTime,
     totalPayments,
     paymentReference,
     cadence,
+    subscriptionType,
   );
   const signedMessage = await signer._signTypedData(...data);
 
@@ -84,11 +90,12 @@ export const getSignedSubscription = async ({
 
   return {
     paymentToken,
-    paymentAmount,
+    paymentAmountMax,
     startTime,
     totalPayments,
     paymentReference,
     cadence,
+    subscriptionType,
     signature: {
       v,
       r,

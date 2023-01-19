@@ -113,7 +113,7 @@ contract SpritzPayV2 is
     }
 
     /**
-     * @notice Pay by swapping token or with native currency, using uniswapv2 as swap provider. Uses
+     * @notice Pay by swapping and ERC-20 token. Uses
      *          Uniswap exact output trade type
      * @param path Swap path
      * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
@@ -168,6 +168,14 @@ contract SpritzPayV2 is
         );
     }
 
+    /**
+     * @notice Execute the swap and transfer to the recipient
+     * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
+     * @param paymentTokenAmount Exact Amount of the target payment token
+     * @param paymentReference Arbitrary reference ID of the related payment
+     * @param deadline Swap deadline
+     * @param path Swap path
+     */
     function _payWithSwap(
         address from,
         address sourceTokenAddress,
@@ -207,7 +215,13 @@ contract SpritzPayV2 is
     }
 
     /**
-     *
+     * @notice Pay by swapping native currency. Uses
+     *          Uniswap exact output trade type
+     * @param path Swap path
+     * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
+     * @param paymentTokenAmount Exact Amount of the target payment token
+     * @param paymentReference Arbitrary reference ID of the related payment
+     * @param deadline Swap deadline
      */
     function payWithNativeSwap(
         uint256 sourceTokenAmountMax,

@@ -10,10 +10,11 @@ export const getSubscriptionCreatedEventData = async (txReceipt: ContractTransac
     subscriber: eventArgs?.["subscriber"],
     subscriptionId: eventArgs?.["subscriptionId"],
     paymentToken: eventArgs?.["paymentToken"],
-    paymentAmount: eventArgs?.["paymentAmount"],
+    paymentAmountMax: eventArgs?.["paymentAmountMax"],
     startTime: eventArgs?.["startTime"],
     totalPayments: eventArgs?.["totalPayments"],
     paymentReference: eventArgs?.["paymentReference"],
     cadence: eventArgs?.["cadence"],
+    subscriptionType: eventArgs?.["subscriptionType"],
   };
 };
