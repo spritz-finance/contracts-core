@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/SpritzSwapModule.sol";
+import "./interfaces/ISpritzSwapModule.sol";
 import "./lib/SpritzPayStorageV2.sol";
 
 /**
@@ -193,7 +193,7 @@ contract SpritzPayV2 is
         IERC20(sourceToken).safeTransferFrom(from, address(_swapModule), sourceTokenAmountMax);
 
         uint256 sourceTokenAmountSpent = _swapModule.exactOutputSwap(
-            SpritzSwapModule.ExactOutputParams(
+            ISpritzSwapModule.ExactOutputParams(
                 _paymentRecipient,
                 from,
                 sourceTokenAmountMax,
@@ -234,7 +234,7 @@ contract SpritzPayV2 is
         if (!isAcceptedToken(paymentToken)) revert NonAcceptedToken(paymentToken);
 
         uint256 sourceTokenAmountSpent = _swapModule.exactOutputNativeSwap{ value: sourceTokenAmountMax }(
-            SpritzSwapModule.ExactOutputParams({
+            ISpritzSwapModule.ExactOutputParams({
                 to: _paymentRecipient,
                 from: msg.sender,
                 inputTokenAmountMax: sourceTokenAmountMax,
@@ -274,10 +274,6 @@ contract SpritzPayV2 is
         _setSwapModule(newSwapTarget);
     }
 
-    function setSmartPayAddress(address swapPayAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setSmartPay(swapPayAddress);
-    }
-
     function addPaymentToken(address newToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _addPaymentToken(newToken);
     }
@@ -286,11 +282,11 @@ contract SpritzPayV2 is
         _removePaymentToken(newToken);
     }
 
-    function revokePaymentDelegate(address processor) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _revokeRole(PAYMENT_DELEGATE_ROLE, processor);
+    function revokePaymentDelegate(address delegate) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(PAYMENT_DELEGATE_ROLE, delegate);
     }
 
-    function grantPaymentDelegate(address processor) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(PAYMENT_DELEGATE_ROLE, processor);
+    function grantPaymentDelegate(address delegate) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(PAYMENT_DELEGATE_ROLE, delegate);
     }
 }

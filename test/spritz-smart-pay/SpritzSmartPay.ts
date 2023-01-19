@@ -601,5 +601,67 @@ describe.only("SpritzSmartPay", () => {
         .connect(paymentProcessor)
         .processTokenPayment(subscriber.address, "10000000", ...subscriptionParams);
     });
+
+    it("prevents calling processTokenPayment on a swap subscription", async () => {
+      const {
+        smartPay,
+        subscriber,
+        paymentToken: paymentTokenContract,
+        spritzPay,
+        paymentProcessor,
+      } = await loadFixture(setupFixture);
+
+      const timestamp = now();
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(spritzPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      const subscriptionParams: SubscriptionParams = [
+        paymentTokenContract.address,
+        "10000000",
+        timestamp,
+        10,
+        reference,
+        Cadence.Monthly,
+        SubscriptionType.SWAP,
+      ];
+
+      await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
+
+      await expect(
+        smartPay.connect(paymentProcessor).processTokenPayment(subscriber.address, "10000000", ...subscriptionParams),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidSubscriptionType");
+    });
+
+    it("allows a valid payment to be charged", async () => {
+      const {
+        smartPay,
+        subscriber,
+        paymentToken: paymentTokenContract,
+        spritzPay,
+        paymentProcessor,
+      } = await loadFixture(setupFixture);
+
+      const timestamp = now();
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(spritzPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      const subscriptionParams: SubscriptionParams = [
+        paymentTokenContract.address,
+        "10000000",
+        timestamp,
+        10,
+        reference,
+        Cadence.Monthly,
+        SubscriptionType.DIRECT,
+      ];
+
+      await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
+
+      await smartPay
+        .connect(paymentProcessor)
+        .processTokenPayment(subscriber.address, "10000000", ...subscriptionParams);
+    });
   });
 });

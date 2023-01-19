@@ -38,7 +38,6 @@
   "function revokePaymentDelegate(address)",
   "function revokeRole(bytes32,address)",
   "function setPaymentRecipient(address)",
-  "function setSmartPayAddress(address)",
   "function setSwapModule(address)",
   "function supportsInterface(bytes4) view returns (bool)",
   "function swapModule() view returns (address)",
