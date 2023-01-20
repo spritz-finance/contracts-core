@@ -12,7 +12,7 @@ task("deploy:swap-module-v2").setAction(async function (_taskArguments: TaskArgu
 
   console.log(`Deploying SwapModule ${_taskArguments.env} contract to ${hre.network.name} with args`, { args });
 
-  const SwapModuleFactory = await hre.ethers.getContractFactory("SpritzV2SwapModule");
+  const SwapModuleFactory = await hre.ethers.getContractFactory("UniswapV2Module");
 
   const swapModule = await SwapModuleFactory.deploy(...args);
   await swapModule.deployed();
@@ -22,7 +22,7 @@ task("deploy:swap-module-v2").setAction(async function (_taskArguments: TaskArgu
   await swapModule.deployTransaction.wait(5);
 
   await verifyContract(swapModule.address, hre, args, {
-    contract: "contracts/swapModules/SpritzV2SwapModule.sol:SpritzV2SwapModule",
+    contract: "contracts/swapModules/UniswapV2Module.sol:UniswapV2Module",
   });
 });
 
@@ -33,7 +33,7 @@ task("deploy:swap-module-v3").setAction(async function (_taskArguments: TaskArgu
 
   console.log(`Deploying SwapModule contract to ${hre.network.name} with args`, { args });
 
-  const SwapModuleFactory = await hre.ethers.getContractFactory("SpritzV3SwapModule");
+  const SwapModuleFactory = await hre.ethers.getContractFactory("UniswapV3Module");
 
   const swapModule = await SwapModuleFactory.deploy(...args);
   await swapModule.deployed();
@@ -43,6 +43,6 @@ task("deploy:swap-module-v3").setAction(async function (_taskArguments: TaskArgu
   await swapModule.deployTransaction.wait(5);
 
   await verifyContract(swapModule.address, hre, args, {
-    contract: "contracts/swapModules/SpritzV3SwapModule.sol:SpritzV3SwapModule",
+    contract: "contracts/swapModules/UniswapV3Module.sol:UniswapV3Module",
   });
 });

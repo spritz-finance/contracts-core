@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-import "./interfaces/ISpritzSwapModule.sol";
+import "./interfaces/SwapModule.sol";
 import "./lib/SpritzPayStorageV3.sol";
 
 /**
@@ -192,7 +192,7 @@ contract SpritzPayV3 is
         IERC20Upgradeable(sourceToken).safeTransferFrom(from, address(_swapModule), sourceTokenAmountMax);
 
         uint256 sourceTokenAmountSpent = _swapModule.exactOutputSwap(
-            ISpritzSwapModule.ExactOutputParams(
+            SwapModule.ExactOutputParams(
                 _paymentRecipient,
                 from,
                 sourceTokenAmountMax,
@@ -233,7 +233,7 @@ contract SpritzPayV3 is
         if (!isAcceptedToken(paymentToken)) revert NonAcceptedToken(paymentToken);
 
         uint256 sourceTokenAmountSpent = _swapModule.exactOutputNativeSwap{ value: sourceTokenAmountMax }(
-            ISpritzSwapModule.ExactOutputParams({
+            SwapModule.ExactOutputParams({
                 to: _paymentRecipient,
                 from: msg.sender,
                 inputTokenAmountMax: sourceTokenAmountMax,

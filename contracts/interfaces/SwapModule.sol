@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.7;
 
-/// @title Interface for SpritzSwapModule
-interface ISpritzSwapModule {
+/// @title Interface for SwapModule
+interface SwapModule {
     struct ExactOutputParams {
         address to;
         address from;

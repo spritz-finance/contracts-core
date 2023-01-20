@@ -1,5 +1,0 @@
-[
-  "function decodeSwapData(bytes) returns (address, address)",
-  "function exactOutputNativeSwap(tuple(address,address,uint256,uint256,uint256,bytes)) payable returns (uint256)",
-  "function exactOutputSwap(tuple(address,address,uint256,uint256,uint256,bytes)) returns (uint256)"
-]

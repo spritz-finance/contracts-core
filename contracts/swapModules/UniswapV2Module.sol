@@ -4,13 +4,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-import "../interfaces/ISpritzSwapModule.sol";
+import "../interfaces/SwapModule.sol";
 import "../interfaces/IWETH9.sol";
 import "../lib/BytesAddressLib.sol";
 
 pragma solidity ^0.8.7;
 
-contract SpritzV2SwapModule is ISpritzSwapModule {
+contract UniswapV2Module is SwapModule {
     using BytesAddressLib for bytes;
     using SafeERC20 for IERC20;
 
@@ -38,7 +38,7 @@ contract SpritzV2SwapModule is ISpritzSwapModule {
 
     /**
      * @notice performs an exact output swap using native ETH and refunds the leftover ETH to the user
-     * @param swapParams the parameters required to make the swap (See: ISpritzSwapModule.ExactOutputParams)
+     * @param swapParams the parameters required to make the swap (See: SwapModule.ExactOutputParams)
      * @return inputTokenAmountSpent the amount of the input token spent to facilitate the swap
      */
     function exactOutputNativeSwap(ExactOutputParams calldata swapParams) external payable override returns (uint256) {
@@ -58,7 +58,7 @@ contract SpritzV2SwapModule is ISpritzSwapModule {
 
     /**
      * @notice performs an exact output swap using an ERC-20 token and refunds leftover tokens to the user
-     * @param swapParams the parameters required to make the swap (See: ISpritzSwapModule.ExactOutputParams)
+     * @param swapParams the parameters required to make the swap (See: SwapModule.ExactOutputParams)
      * @return inputTokenAmountSpent the amount of the input token spent to facilitate the swap
      */
     function exactOutputSwap(ExactOutputParams calldata swapParams) public override returns (uint256) {
@@ -76,7 +76,7 @@ contract SpritzV2SwapModule is ISpritzSwapModule {
 
     /**
      * @notice private method to perform an exact output swap on the v2 router
-     * @param swapParams the parameters required to make the swap (See: ISpritzSwapModule.ExactOutputParams)
+     * @param swapParams the parameters required to make the swap (See: SwapModule.ExactOutputParams)
      * @return inputTokenAddress the address of the token being swapped
      * @return inputTokenAmountSpent the amount of the input token spent to facilitate the swap
      * @return remainingBalance the leftover balance of the input token after the swap
@@ -101,7 +101,7 @@ contract SpritzV2SwapModule is ISpritzSwapModule {
 
     /**
      * @notice internal method to handle the underlying swap with the v2 router
-     * @param swapParams the parameters required to make the swap (See: ISpritzSwapModule.ExactOutputParams)
+     * @param swapParams the parameters required to make the swap (See: SwapModule.ExactOutputParams)
      * @param path an array of addresses referring to the swap path
      * @return inputTokenAmountSpent the amount of the input token spent to facilitate the swap
      * @return remainingBalance the leftover balance of the input token after the swap

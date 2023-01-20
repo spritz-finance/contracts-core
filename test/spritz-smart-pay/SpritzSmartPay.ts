@@ -9,8 +9,8 @@ import {
   SpritzPayV3__factory,
   SpritzSmartPay,
   SpritzSmartPay__factory,
-  SpritzV3SwapModule,
-  SpritzV3SwapModule__factory,
+  UniswapV3Module,
+  UniswapV3Module__factory,
   WETH9,
   WETH9__factory,
 } from "../../src/types";
@@ -50,8 +50,8 @@ describe("SpritzSmartPay", () => {
     const PaymentTokenFactory = (await ethers.getContractFactory("MockToken")) as MockToken__factory;
     const paymentToken = (await PaymentTokenFactory.deploy()) as MockToken;
 
-    const SwapModuleFactory = (await ethers.getContractFactory("SpritzV3SwapModule")) as SpritzV3SwapModule__factory;
-    const swapModule = (await SwapModuleFactory.deploy(uniswapRouter.address, weth9.address)) as SpritzV3SwapModule;
+    const SwapModuleFactory = (await ethers.getContractFactory("UniswapV3Module")) as UniswapV3Module__factory;
+    const swapModule = (await SwapModuleFactory.deploy(uniswapRouter.address, weth9.address)) as UniswapV3Module;
 
     const SpritzPayFactory = (await ethers.getContractFactory("SpritzPayV3")) as SpritzPayV3__factory;
     const spritzPay = (await SpritzPayFactory.deploy()) as SpritzPayV3;
