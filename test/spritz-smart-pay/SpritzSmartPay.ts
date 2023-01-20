@@ -5,8 +5,8 @@ import { ethers, waffle } from "hardhat";
 
 import {
   MockToken,
-  SpritzPayV2,
-  SpritzPayV2__factory,
+  SpritzPayV3,
+  SpritzPayV3__factory,
   SpritzSmartPay,
   SpritzSmartPay__factory,
   SpritzV3SwapModule,
@@ -22,7 +22,6 @@ import { getSignedSubscription } from "./utilities/signedSubscription";
 const V3RouterAbi = require("../../artifacts/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol/ISwapRouter.json");
 
 const reference = formatPaymentReference("6304ca0d2f5acf6d69b3c58e");
-const PAYMENT_PROCESSOR_ROLE = "0xd7d8b7014b7ed36eb085c9e3e427b642d74cab75ecefda8a757042e63ec59919";
 
 type SubscriptionParams = [string, string, number, number, string, number, number];
 
@@ -39,7 +38,7 @@ enum SubscriptionType {
   SWAP,
 }
 
-describe.only("SpritzSmartPay", () => {
+describe("SpritzSmartPay", () => {
   const setupFixture = async () => {
     const [deployer, subscriber, paymentProcessor, paymentRecipient, bob] = await ethers.getSigners();
 
@@ -54,8 +53,8 @@ describe.only("SpritzSmartPay", () => {
     const SwapModuleFactory = (await ethers.getContractFactory("SpritzV3SwapModule")) as SpritzV3SwapModule__factory;
     const swapModule = (await SwapModuleFactory.deploy(uniswapRouter.address, weth9.address)) as SpritzV3SwapModule;
 
-    const SpritzPayFactory = (await ethers.getContractFactory("SpritzPayV2")) as SpritzPayV2__factory;
-    const spritzPay = (await SpritzPayFactory.deploy()) as SpritzPayV2;
+    const SpritzPayFactory = (await ethers.getContractFactory("SpritzPayV3")) as SpritzPayV3__factory;
+    const spritzPay = (await SpritzPayFactory.deploy()) as SpritzPayV3;
 
     await spritzPay.initialize(deployer.address, paymentRecipient.address, uniswapRouter.address, weth9.address, [
       paymentToken.address,

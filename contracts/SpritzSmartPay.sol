@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./SpritzPayV2.sol";
+import "./SpritzPayV3.sol";
 import "./lib/SubscriptionChargeDate.sol";
 
 /**
@@ -101,13 +101,13 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
     }
 
     /// @notice The wallet owned by spritz that receives payments
-    SpritzPayV2 internal immutable spritzPay;
+    SpritzPayV3 internal immutable spritzPay;
 
     /// @notice Mapping of the subscription id to the subscription on-chain data
     mapping(bytes32 => Subscription) public subscriptions;
 
     constructor(address admin, address _spritzPay, address paymentBot) EIP712("SpritzSmartPay", version()) {
-        spritzPay = SpritzPayV2(_spritzPay);
+        spritzPay = SpritzPayV3(_spritzPay);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PAYMENT_PROCESSOR_ROLE, paymentBot);
     }
