@@ -32,10 +32,16 @@ contract SpritzBridge is AccessControlEnumerable  {
      * @param swapToken Which facilitates the trade
      * @param to Target address
      * @param chainId ID of target chain
+     * @param isUnderlying Whether to call anySwapOutUnderlying or anySwapOut
      */
-    function bridge(IERC20 token, IERC20 swapToken, address to, uint amount, uint chainId) external onlyRole(WITHDRAW_ROLE) {
-        token.safeApprove(BRIDGE_ADDRESS, type(uint256).max);
-        IAnyswapV4Router(BRIDGE_ADDRESS).anySwapOutUnderlying(address(swapToken), to, amount, chainId);
+    function bridge(IERC20 token, IERC20 swapToken, address to, uint amount, uint chainId, bool isUnderlying) external onlyRole(WITHDRAW_ROLE) {
+        token.safeApprove(BRIDGE_ADDRESS, amount);
+        if(isUnderlying){
+            IAnyswapV4Router(BRIDGE_ADDRESS).anySwapOutUnderlying(address(swapToken), to, amount, chainId);
+        } else {
+            IAnyswapV4Router(BRIDGE_ADDRESS).anySwapOut(address(swapToken), to, amount, chainId);
+        }
+
     }
 
     /**
