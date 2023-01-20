@@ -6,7 +6,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
-contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable {
+import "../interfaces/ISpritzSwapModule.sol";
+
+contract SpritzPayStorageV3 is Initializable, AccessControlEnumerableUpgradeable {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     /**
@@ -49,18 +51,15 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
 
     address internal _v3SwapTarget;
     address internal _smartPay;
+    ISpritzSwapModule internal _swapModule;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant PAYMENT_DELEGATE_ROLE = keccak256("PAYMENT_DELEGATE_ROLE");
 
     modifier onlyAcceptedToken(address paymentToken) {
         if (!_acceptedPaymentTokens.contains(paymentToken)) {
             revert NonAcceptedToken(paymentToken);
         }
-        _;
-    }
-
-    modifier onlySmartPay() {
-        if (msg.sender != _smartPay) revert UnauthorizedExecutor(msg.sender);
         _;
     }
 
@@ -115,14 +114,6 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
     }
 
     /**
-     * @dev Sets a new address for the smart pay contract
-     */
-    function _setSmartPay(address newSmartPay) internal virtual {
-        if (newSmartPay == address(0)) revert SetZeroAddress();
-        _smartPay = newSmartPay;
-    }
-
-    /**
      * @dev Returns the address of the swap target
      */
     function swapTarget() public view virtual returns (address) {
@@ -137,11 +128,26 @@ contract SpritzPayStorageV2 is Initializable, AccessControlEnumerableUpgradeable
     }
 
     /**
+     * @dev Returns the address of the swap target
+     */
+    function swapModule() public view virtual returns (address) {
+        return address(_swapModule);
+    }
+
+    /**
      * @dev Sets a new address for the wrapped native token
      */
     function _setWrappedNative(address newWrappedNative) internal virtual {
         if (newWrappedNative == address(0)) revert SetZeroAddress();
         _wrappedNative = newWrappedNative;
+    }
+
+    /**
+     * @dev Sets a new address for the wrapped native token
+     */
+    function _setSwapModule(address newSwapModule) internal virtual {
+        if (newSwapModule == address(0)) revert SetZeroAddress();
+        _swapModule = ISpritzSwapModule(newSwapModule);
     }
 
     /**
