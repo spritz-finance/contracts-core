@@ -633,6 +633,132 @@ describe.only("SpritzSmartPay", () => {
       ).to.be.revertedWithCustomError(smartPay, "InvalidSubscriptionType");
     });
 
+    it("prevents calling processTokenPayment with an amount greater than the max amount", async () => {
+      const {
+        smartPay,
+        subscriber,
+        paymentToken: paymentTokenContract,
+        spritzPay,
+        paymentProcessor,
+      } = await loadFixture(setupFixture);
+
+      const timestamp = now();
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(spritzPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      const subscriptionParams: SubscriptionParams = [
+        paymentTokenContract.address,
+        "10000000",
+        timestamp,
+        10,
+        reference,
+        Cadence.Monthly,
+        SubscriptionType.DIRECT,
+      ];
+
+      await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
+
+      await expect(
+        smartPay.connect(paymentProcessor).processTokenPayment(subscriber.address, "10000001", ...subscriptionParams),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidPaymentValue");
+    });
+
+    it("prevents calling processTokenPayment on a subscription that does not exist", async () => {
+      const {
+        smartPay,
+        subscriber,
+        paymentToken: paymentTokenContract,
+        spritzPay,
+        paymentProcessor,
+      } = await loadFixture(setupFixture);
+
+      const timestamp = now();
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(spritzPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      const subscriptionParams: SubscriptionParams = [
+        paymentTokenContract.address,
+        "10000000",
+        timestamp,
+        10,
+        reference,
+        Cadence.Monthly,
+        SubscriptionType.DIRECT,
+      ];
+
+      await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
+
+      await expect(
+        smartPay
+          .connect(paymentProcessor)
+          .processTokenPayment(paymentProcessor.address, "10000000", ...subscriptionParams),
+      ).to.be.revertedWithCustomError(smartPay, "SubscriptionNotFound");
+    });
+
+    it("prevents calling processTokenPayment before the start time", async () => {
+      const {
+        smartPay,
+        subscriber,
+        paymentToken: paymentTokenContract,
+        spritzPay,
+        paymentProcessor,
+      } = await loadFixture(setupFixture);
+
+      const timestamp = now();
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(spritzPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp - 100);
+
+      const subscriptionParams: SubscriptionParams = [
+        paymentTokenContract.address,
+        "10000000",
+        timestamp,
+        10,
+        reference,
+        Cadence.Monthly,
+        SubscriptionType.DIRECT,
+      ];
+
+      await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
+
+      await expect(
+        smartPay.connect(paymentProcessor).processTokenPayment(subscriber.address, "10000000", ...subscriptionParams),
+      ).to.be.revertedWithCustomError(smartPay, "InvalidPaymentCharge");
+    });
+
+    it("fails if SmartPay does not have delegate permissions on SpritzPay", async () => {
+      const {
+        smartPay,
+        subscriber,
+        paymentToken: paymentTokenContract,
+        spritzPay,
+        paymentProcessor,
+      } = await loadFixture(setupFixture);
+      await spritzPay.revokePaymentDelegate(smartPay.address);
+      const timestamp = now();
+
+      await paymentTokenContract.connect(subscriber).increaseAllowance(spritzPay.address, "10000000");
+      await time.setNextBlockTimestamp(timestamp);
+
+      const subscriptionParams: SubscriptionParams = [
+        paymentTokenContract.address,
+        "10000000",
+        timestamp,
+        10,
+        reference,
+        Cadence.Monthly,
+        SubscriptionType.DIRECT,
+      ];
+
+      await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
+
+      await expect(
+        smartPay.connect(paymentProcessor).processTokenPayment(subscriber.address, "10000000", ...subscriptionParams),
+      ).to.be.reverted;
+    });
+
     it("allows a valid payment to be charged", async () => {
       const {
         smartPay,
@@ -659,9 +785,9 @@ describe.only("SpritzSmartPay", () => {
 
       await smartPay.connect(subscriber).createSubscription(...subscriptionParams);
 
-      await smartPay
-        .connect(paymentProcessor)
-        .processTokenPayment(subscriber.address, "10000000", ...subscriptionParams);
+      await expect(
+        smartPay.connect(paymentProcessor).processTokenPayment(subscriber.address, "10000000", ...subscriptionParams),
+      ).not.to.be.reverted;
     });
   });
 });

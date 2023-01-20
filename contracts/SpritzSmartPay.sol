@@ -435,6 +435,7 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
         uint256 startTime,
         SubscriptionCadence cadence
     ) private view returns (bool) {
+        if (block.timestamp < startTime) return false;
         if (totalPayments > 0 && paymentCount == totalPayments) return false;
 
         if (cadence == SubscriptionCadence.MONTHLY) {

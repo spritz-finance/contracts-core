@@ -85,10 +85,13 @@ contract SpritzV2SwapModule is ISpritzSwapModule {
         (address[] memory path, address inputTokenAddress, ) = _decodeSwapData(swapParams.swapData);
 
         IERC20 inputToken = IERC20(inputTokenAddress);
-
         uint256 allowance = inputToken.allowance(address(this), swapTarget);
-        if (allowance < swapParams.inputTokenAmountMax) {
-            inputToken.approve(swapTarget, type(uint256).max);
+
+        if (allowance == 0) {
+            inputToken.safeApprove(swapTarget, type(uint256).max);
+        } else if (allowance < swapParams.inputTokenAmountMax) {
+            inputToken.safeApprove(swapTarget, 0);
+            inputToken.safeApprove(swapTarget, type(uint256).max);
         }
 
         (uint256 inputTokenAmountSpent, uint256 remainingBalance) = _swap(swapParams, path);
