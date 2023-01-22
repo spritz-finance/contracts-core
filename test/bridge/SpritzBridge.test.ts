@@ -1,13 +1,13 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import axios from "axios";
-import { ethers, network } from "hardhat";
+import { expect } from "chai";
+import { BigNumber } from "ethers";
+import { ethers, network, tracer } from "hardhat";
 
-import { SpritzBridge, SpritzBridge__factory } from "../../src/types";
+import { IERC20Upgradeable, SpritzBridge, SpritzBridge__factory } from "../../src/types";
 import { getERC20Contracts } from "../helpers/helpers";
 
-const multiswapBridgeAddress = "0xd1c5966f9f5ee6881ff6b261bbeda45972b1b5f3";
+// const multiswapBridgeAddress = "0xd1c5966f9f5ee6881ff6b261bbeda45972b1b5f3";
 const BSC_USDC = "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d";
-const targetWallet = "0xc812d763b1b17f7cef189f50a0a8c2d9419852e3";
 
 describe("SpritzBridge", function () {
   let usdcWhale: SignerWithAddress;
@@ -32,68 +32,47 @@ describe("SpritzBridge", function () {
 
   describe("Deployment", () => {
     it("deploys", async () => {
-      (await bridgeFactory.deploy(multiswapBridgeAddress)) as SpritzBridge;
+      (await bridgeFactory.deploy()) as SpritzBridge;
     });
   });
 
   describe("Bridging", () => {
-    before(async () => {
+    let bridge: SpritzBridge;
+    const USDC_BSC_Decimals = 18;
+    const usdcAmount = ethers.utils.parseUnits("1000", USDC_BSC_Decimals); //usdc-bsc 18 dec
+    let usdc: IERC20Upgradeable;
+
+    beforeEach(async () => {
       await admin.sendTransaction({
         to: usdcWhale.address,
         value: ethers.utils.parseEther("100"),
       });
+      bridge = await bridgeFactory.deploy();
+      const [_usdc] = (await getERC20Contracts([BSC_USDC])) as [IERC20Upgradeable];
+      usdc = _usdc;
     });
 
-    async function getQuote(token: string, chainId: string, targetChainId: string) {
-      const { data } = await axios.get<Record<string, any>>(
-        `https://bridgeapi.multichain.org/v4/tokenlistv4/${chainId}`,
-      );
-      for (const src of Object.values(data)) {
-        if (src.address !== token.toLowerCase()) {
-          continue;
-        }
-
-        // console.log(v);
-
-        const destChainObj = src.destChains[targetChainId];
-
-        if (!destChainObj) throw new Error("No quote");
-
-        //yes?
-        const dest = Object.values(destChainObj)[0] as any;
-
-        if (!dest) throw new Error("No quote");
-
-        const isUnderlying = !!dest.routerABI.match(/anySwapOutUnderlying/);
-
-        return {
-          isUnderlying,
-          swapToken: dest.fromanytoken.address,
-          dest,
-        };
-      }
-
-      throw new Error("No quote");
-    }
-
     it("bridges usdc from bsc to polygon", async () => {
-      const bridge = await bridgeFactory.deploy(multiswapBridgeAddress);
-      const [usdc] = await getERC20Contracts([BSC_USDC]);
+      console.log(ethers.utils.parseUnits("12", 18));
 
-      //fetch data for bridge
-      const { dest, isUnderlying, swapToken } = (await getQuote(usdc.address, "56", "137")) as any;
-
-      console.log("Bridging data", dest);
-
-      //give the bridge some usdc
-      const usdcAmount = ethers.utils.parseUnits("1000", 18); //usdc-bsc 18 dec
       await usdc.connect(usdcWhale).transfer(bridge.address, usdcAmount);
+      await bridge.connect(admin).bridgeUDSCToPolygon(usdcAmount);
+      const balanceAfter = await usdc.balanceOf(bridge.address);
+      expect(balanceAfter).to.eq(BigNumber.from(0));
+    });
 
-      const result = await bridge
-        .connect(admin)
-        .bridge(usdc.address, swapToken, targetWallet, usdcAmount, 137, isUnderlying);
+    it("reverts on too much", async () => {
+      await usdc.connect(usdcWhale).transfer(bridge.address, usdcAmount);
+      await expect(bridge.connect(admin).bridgeUDSCToPolygon(usdcAmount.mul(2))).to.be.revertedWith(
+        "Amount exceeds balance",
+      );
+    });
 
-      console.log(result);
+    it("reverts on too little", async () => {
+      await usdc.connect(usdcWhale).transfer(bridge.address, usdcAmount);
+      await expect(
+        bridge.connect(admin).bridgeUDSCToPolygon(ethers.utils.parseUnits("1", USDC_BSC_Decimals)),
+      ).to.be.revertedWith("Amount less than minimum");
     });
   });
 });
