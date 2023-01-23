@@ -3,13 +3,13 @@ import { task } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
 task("deploy:SpritzBridge").setAction(async function (_taskArguments: TaskArguments, hre) {
-  // const x = await hre.ethers.getSigners();
-  // console.log(x);
-
-  // const bridgeFactory = await hre.ethers.getContractFactory("SpritzBridge");
-  // const deployed = await bridgeFactory.deploy();
+  const bridgeFactory = await hre.ethers.getContractFactory("SpritzBridge");
+  console.log("Deploying");
+  const bridge = await bridgeFactory.deploy();
+  await bridge.deployTransaction.wait(6);
+  console.log(`Deployed to ${bridge.address} with tx: ${bridge.deployTransaction.hash}`);
   await hre.run(`verify:verify`, {
-    address: "0x6396dE2F7c219aDAC4D1cc5b925805231EE9a7C9",
+    address: bridge.address,
     contract: "contracts/utility/SpritzBridge.sol:SpritzBridge",
     constructorArguments: [],
   });
