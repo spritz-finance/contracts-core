@@ -15,14 +15,44 @@ contract SpritzBridge is AccessControlEnumerable {
 
     using SafeERC20 for IERC20;
 
-    bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+    // @dev Bot which has permission to call the bridge function
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
-    address internal immutable BRIDGE_ADDRESS = 0xd1C5966f9F5Ee6881Ff6b261BBeDa45972B1B5f3;
-    IERC20 USDC = IERC20(0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d);
-    address internal immutable USDC_POLYGON_ANYTOKEN = 0x8965349fb649A33a30cbFDa057D8eC2C48AbE2A2;
-    address internal immutable RECEIVING_ADDRESS = 0x4b7D6C3cEa01F4d54A9cad6587DA106Ea39dA1e6;
-    uint minimum = 12 * (10**18);
+    // @dev Admin which can withdraw deposited tokens without bridging
+    bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+
+
+    event BridgeParamsConfigured(
+        address indexed token,
+        uint targetChain,
+        address bridge,
+        address anyToken,
+        uint minimum,
+        address receiver,
+        bool isUnderlying
+    );
+
+    /**
+     * @dev Configuration for bridging a particular token
+     * @param token The token being bridged
+     * @param targetChain ID of chain
+     * @param bridge AnyswapV4Router location
+     * @param anyToken Address of anytoken facilitating swap
+     * @param minimum Minimum swap amount
+     * @param receiver Receiving address on target chain
+     * @param isUnderlying Whether we use anySwapOutUnderlying or anySwapOut
+     */
+    struct BridgeParams {
+        address token;
+        uint targetChain;
+        address bridge;
+        address anyToken;
+        uint minimum;
+        address receiver;
+        bool isUnderlying;
+    }
+
+    mapping(address => BridgeParams) tokenBridgingParams;
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -30,25 +60,79 @@ contract SpritzBridge is AccessControlEnumerable {
         _setupRole(BRIDGE_ROLE, msg.sender);
     }
 
-    /**
-     * @dev Bridge received USDC to Polygon
-     * @param amount Amount to bridge
-     */
-    function bridgeUDSCToPolygon(uint amount) external onlyRole(BRIDGE_ROLE) {
-        require(amount <= USDC.balanceOf(address(this)), "Amount exceeds balance");
-        require(amount > minimum, "Amount less than minimum");
 
-        USDC.safeApprove(BRIDGE_ADDRESS, amount);
-        IAnyswapV4Router(BRIDGE_ADDRESS).anySwapOutUnderlying(
-            USDC_POLYGON_ANYTOKEN,
-            RECEIVING_ADDRESS,
-            amount,
-            137
+    /**
+     * @dev Set the bridging parameters for the given token
+     * @param token The token being bridged
+     * @param targetChain ID of chain
+     * @param bridge AnyswapV4Router location
+     * @param anyToken Address of anytoken facilitating swap
+     * @param minimum Minimum swap amount
+     * @param receiver Receiving address on target chain
+     * @param isUnderlying Whether we use anySwapOutUnderlying or anySwapOut
+     */
+    function setBridgeParamsForToken(
+        address token,
+        uint targetChain,
+        address bridge,
+        address anyToken,
+        uint minimum,
+        address receiver,
+        bool isUnderlying
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        tokenBridgingParams[token] = BridgeParams(
+            token,
+            targetChain,
+            bridge,
+            anyToken,
+            minimum,
+            receiver,
+            isUnderlying
+        );
+
+        emit BridgeParamsConfigured(
+            token,
+            targetChain,
+            bridge,
+            anyToken,
+            minimum,
+            receiver,
+            isUnderlying
         );
     }
 
     /**
-     * @dev Withdraw received tokens to the given address
+     * @dev Bridge deposited tokens via Multichain
+     * @param token Token to send to bridge
+     * @param amount How much to bridge
+     */
+    function bridgeToken(address token, uint amount) external onlyRole(BRIDGE_ROLE) {
+        BridgeParams storage params = tokenBridgingParams[token];
+        require(params.token != address(0), "Bridging params not found");
+
+        require(amount <= IERC20(params.token).balanceOf(address(this)), "Amount exceeds balance");
+        require(amount >= params.minimum, "Amount less than minimum");
+        IERC20(params.token).safeApprove(params.bridge, amount);
+        if(params.isUnderlying) {
+            IAnyswapV4Router(params.bridge).anySwapOutUnderlying(
+                params.anyToken,
+                params.receiver,
+                amount,
+                params.targetChain
+            );
+        } else {
+            IAnyswapV4Router(params.bridge).anySwapOut(
+                params.anyToken,
+                params.receiver,
+                amount,
+                params.targetChain
+            );
+        }
+
+    }
+
+    /**
+     * @dev Withdraw deposited tokens to the given address
      * @param token Token to withdraw
      * @param to Target address
      */
