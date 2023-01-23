@@ -35,8 +35,8 @@ const alchemyPolygonMumbaiKey: string | undefined = process.env.ALCHEMY_POLYGON_
 const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
 
 // export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
-export const FORKING_URL = `https://opt-mainnet.g.alchemy.com/v2/khoRjoOTMnjpiCJQlemK5FHQbKcYVP3t`;
-export const FORKING_CHAIN = "mainnet";
+export const FORKING_URL = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
+export const FORKING_CHAIN = "bsc";
 
 const chainIds = {
   "arbitrum-mainnet": 42161,
@@ -117,7 +117,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: (getChainConfig(FORKING_CHAIN) as HttpNetworkConfig).url,
-        blockNumber: 16132246,
+        // blockNumber: 16132246,
       },
       accounts: {
         mnemonic,
