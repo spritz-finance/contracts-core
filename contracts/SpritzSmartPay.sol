@@ -100,7 +100,17 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
         bytes swapData;
     }
 
-    /// @notice The wallet owned by spritz that receives payments
+    struct SubscriptionParams {
+        address paymentToken;
+        uint256 paymentAmountMax;
+        uint256 startTime;
+        uint256 totalPayments;
+        bytes32 paymentReference;
+        SubscriptionCadence cadence;
+        SubscriptionType subscriptionType;
+    }
+
+    /// @notice The address of the SpritzPay smart contract
     SpritzPayV3 internal immutable spritzPay;
 
     /// @notice Mapping of the subscription id to the subscription on-chain data
@@ -248,39 +258,31 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
     /**
      * @notice Charges the given subscription and sends the payment to the SpritzPay contract
      * @param subscriber The account who owns the subscription
-     * @param paymentToken The address of the token used for payment
-     * @param paymentAmountMax The amount the subscription is charged each time the subscription is processed
-     * @param startTime The timestamp when the subscription should first be charged
-     * @param totalPayments The total number of payments the subscription is allowed to process
-     * @param paymentReference Arbitrary payment reference
-     * @param cadence The frequency at which the subscription can be charged
+     * @param paymentAmount The total amount of the token payment
+     * @param params The parameters for the subscription
+     * @param externalPaymentReference The reference passed on to delegated payment contract
      */
     function processTokenPayment(
         address subscriber,
         uint256 paymentAmount,
-        address paymentToken,
-        uint256 paymentAmountMax,
-        uint256 startTime,
-        uint256 totalPayments,
-        bytes32 paymentReference,
-        SubscriptionCadence cadence,
-        SubscriptionType subscriptionType
+        SubscriptionParams calldata params,
+        bytes32 externalPaymentReference
     ) external onlyRole(PAYMENT_PROCESSOR_ROLE) {
-        if (subscriptionType != SubscriptionType.DIRECT) revert InvalidSubscriptionType();
+        if (params.subscriptionType != SubscriptionType.DIRECT) revert InvalidSubscriptionType();
 
         bytes32 subscriptionId = _processSubscriptionCharge(
             subscriber,
-            paymentToken,
-            paymentAmountMax,
-            startTime,
-            totalPayments,
-            paymentReference,
-            cadence,
-            subscriptionType
+            params.paymentToken,
+            params.paymentAmountMax,
+            params.startTime,
+            params.totalPayments,
+            params.paymentReference,
+            params.cadence,
+            params.subscriptionType
         );
-        if (paymentAmount > paymentAmountMax) revert InvalidPaymentValue();
+        if (paymentAmount > params.paymentAmountMax) revert InvalidPaymentValue();
 
-        spritzPay.delegatedPayWithToken(subscriber, paymentToken, paymentAmount, paymentReference);
+        spritzPay.delegatedPayWithToken(subscriber, params.paymentToken, paymentAmount, externalPaymentReference);
 
         emit PaymentProcessed(subscriber, subscriptionId);
     }
@@ -288,43 +290,35 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
     /**
      * @notice Charges the given subscription and sends the payment to the SpritzPay contract
      * @param subscriber The account who owns the subscription
-     * @param paymentToken The address of the token used for payment
-     * @param paymentAmount The amount the subscription is charged each time the subscription is processed
-     * @param startTime The timestamp when the subscription should first be charged
-     * @param totalPayments The total number of payments the subscription is allowed to process
-     * @param paymentReference Arbitrary payment reference
-     * @param cadence The frequency at which the subscription can be charged
+     * @param params The parameters for the subscription
+     * @param swapParams The arguments for the swap payment
+     * @param externalPaymentReference The reference passed on to delegated payment contract
      */
     function processSwapPayment(
         address subscriber,
-        address paymentToken,
-        uint256 paymentAmount,
-        uint256 startTime,
-        uint256 totalPayments,
-        bytes32 paymentReference,
-        SubscriptionCadence cadence,
-        SubscriptionType subscriptionType,
-        SwapParams calldata swapParams
+        SubscriptionParams calldata params,
+        SwapParams calldata swapParams,
+        bytes32 externalPaymentReference
     ) external onlyRole(PAYMENT_PROCESSOR_ROLE) {
-        if (subscriptionType != SubscriptionType.SWAP) revert InvalidSubscriptionType();
+        if (params.subscriptionType != SubscriptionType.SWAP) revert InvalidSubscriptionType();
 
         bytes32 subscriptionId = _processSubscriptionCharge(
             subscriber,
-            paymentToken,
-            paymentAmount,
-            startTime,
-            totalPayments,
-            paymentReference,
-            cadence,
-            subscriptionType
+            params.paymentToken,
+            params.paymentAmountMax,
+            params.startTime,
+            params.totalPayments,
+            params.paymentReference,
+            params.cadence,
+            params.subscriptionType
         );
 
         spritzPay.delegatedPayWithSwap(
             subscriber,
-            paymentToken,
+            params.paymentToken,
             swapParams.sourceTokenAmountMax,
             swapParams.paymentTokenAmount,
-            paymentReference,
+            externalPaymentReference,
             swapParams.deadline,
             swapParams.swapData
         );
