@@ -93,6 +93,13 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
         uint256 lastPaymentTimestamp;
     }
 
+    /**
+     * @dev Configuration for a payment by swapping an input token on chain
+     * @param sourceTokenAmountMax The max amount of the input token that can be swapped
+     * @param paymentTokenAmount The amount of the output token required from the swap
+     * @param deadline The deadline of the swap
+     * @param swapData Arbitrary bytes string containing swap data
+     */
     struct SwapParams {
         uint256 sourceTokenAmountMax;
         uint256 paymentTokenAmount;
@@ -100,6 +107,16 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
         bytes swapData;
     }
 
+    /**
+     * @dev Configuration for a payment by swapping an input token on chain
+     * @param paymentToken The address of the token used for payment
+     * @param paymentAmountMax The maximum amount the subscription is charged each time the subscription is processed
+     * @param startTime The timestamp when the subscription should first be charged
+     * @param totalPayments The total number of payments the subscription is allowed to process
+     * @param paymentReference Arbitrary payment reference
+     * @param cadence The frequency at which the subscription can be charged
+     * @param subscriptionType The type of the subscrition, direct payment or swap
+     */
     struct SubscriptionParams {
         address paymentToken;
         uint256 paymentAmountMax;
@@ -135,6 +152,7 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
      * @param totalPayments The total number of payments the subscription is allowed to process
      * @param paymentReference Arbitrary payment reference
      * @param cadence The frequency at which the subscription can be charged
+     * @param subscriptionType The type of the subscrition, direct payment or swap
      * @param signature The message signed by the user
      * @dev The bulk of the subscription data is emitted in the "SubscriptionCreated" event and will be stored off-chain.
      * This allows us to save significant gas by only storing critcal/variable data on-chain, and using a hash to validate the off-chain
@@ -211,6 +229,7 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
      * @param totalPayments The total number of payments the subscription is allowed to process
      * @param paymentReference Arbitrary payment reference
      * @param cadence The frequency at which the subscription can be charged
+     * @param subscriptionType The type of the subscrition, direct payment or swap
      * @dev The bulk of the subscription data is emitted in the "SubscriptionCreated" event and will be stored off-chain.
      * This allows us to save significant gas by only storing critcal/variable data on-chain, and using a hash to validate the off-chain
      * data
