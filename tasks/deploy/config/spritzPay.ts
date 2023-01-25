@@ -1,5 +1,3 @@
-import { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
-
 import {
   ACCEPTED_STABLECOINS_ARBITRUM,
   ACCEPTED_STABLECOINS_BSC,
@@ -35,12 +33,12 @@ import {
   WETH_MAINNET_ADDRESS,
   WETH_OPTIMISM_ADDRESS,
   WMATIC_POLYGON_ADDRESS,
-} from "./constants";
+} from "../constants";
 
 const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const contractConfig: Record<string, Record<string, { proxy: string; args: any[] }>> = {
+const spritzPayContractConfig: Record<string, Record<string, { proxy: string; args: any[] }>> = {
   staging: {
     "polygon-mainnet": {
       proxy: SPRITZPAY_STAGING_POLYGON_ADDRESS,
@@ -129,14 +127,5 @@ export const contractConfig: Record<string, Record<string, { proxy: string; args
   },
 };
 
-export function getContractConfig(_taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) {
-  const { env } = _taskArguments;
-  const network = hre.hardhatArguments.network;
-  const config = contractConfig?.[env as string]?.[network as string];
-
-  if (!config) {
-    throw new Error(`Config not found! ${env} ${network}`);
-  }
-
-  return config;
-}
+export const getSpritzPayContractConfig = (env: string, network: string) =>
+  spritzPayContractConfig[env as string][network as string];

@@ -1,5 +1,4 @@
 [
-  "constructor(address,address,address)",
   "error InvalidPaymentCharge(bytes32,uint256)",
   "error InvalidPaymentValue()",
   "error InvalidSignature()",
@@ -7,6 +6,7 @@
   "error InvalidSubscriptionType()",
   "error SubscriptionAlreadyExists(bytes32)",
   "error SubscriptionNotFound(bytes32)",
+  "event Initialized(uint8)",
   "event PaymentProcessed(address indexed,bytes32 indexed)",
   "event RoleAdminChanged(bytes32 indexed,bytes32 indexed,bytes32 indexed)",
   "event RoleGranted(bytes32 indexed,address indexed,address indexed)",
@@ -26,6 +26,7 @@
   "function grantRole(bytes32,address)",
   "function hasRole(bytes32,address) view returns (bool)",
   "function hashSubscription(address,address,uint256,uint256,uint256,bytes32,uint8,uint8) view returns (bytes32)",
+  "function initialize(address,address,address)",
   "function processSwapPayment(address,tuple(address,uint256,uint256,uint256,bytes32,uint8,uint8),tuple(uint256,uint256,uint256,bytes),bytes32)",
   "function processTokenPayment(address,uint256,tuple(address,uint256,uint256,uint256,bytes32,uint8,uint8),bytes32)",
   "function renounceRole(bytes32,address)",

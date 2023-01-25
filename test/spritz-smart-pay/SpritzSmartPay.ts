@@ -1,7 +1,7 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
-import { ethers, waffle } from "hardhat";
+import { ethers, upgrades, waffle } from "hardhat";
 
 import {
   MockToken,
@@ -59,7 +59,7 @@ enum SubscriptionType {
   SWAP,
 }
 
-describe("SpritzSmartPay", () => {
+describe.only("SpritzSmartPay", () => {
   const setupFixture = async () => {
     const [deployer, subscriber, paymentProcessor, paymentRecipient, bob] = await ethers.getSigners();
 
@@ -83,11 +83,11 @@ describe("SpritzSmartPay", () => {
     await spritzPay.setSwapModule(swapModule.address);
 
     const SmartPayFactory = (await ethers.getContractFactory("SpritzSmartPay")) as SpritzSmartPay__factory;
-    const smartPay = (await SmartPayFactory.deploy(
+    const smartPay = (await upgrades.deployProxy(SmartPayFactory, [
       deployer.address,
       spritzPay.address,
       paymentProcessor.address,
-    )) as SpritzSmartPay;
+    ])) as SpritzSmartPay;
     await smartPay.deployed();
 
     await spritzPay.grantRole(PAYMENT_DELEGATE_ROLE, smartPay.address);

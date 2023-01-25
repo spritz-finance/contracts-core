@@ -9,7 +9,7 @@ import { getContractConfig } from "./config";
 task("deploy:SpritzPayV2")
   .addOptionalParam("env", "Production or Staging", "production", types.string)
   .setAction(async function (_taskArguments: TaskArguments, hre) {
-    const config = getContractConfig(_taskArguments, hre);
+    const config = getContractConfig("spritzPay", _taskArguments, hre);
 
     const { args } = config;
 
@@ -40,7 +40,7 @@ task("deploy:SpritzPayV2")
 task("upgrade:SpritzPayV2")
   .addOptionalParam("env", "Production or Staging", "production", types.string)
   .setAction(async function (_taskArguments: TaskArguments, hre) {
-    const config = getContractConfig(_taskArguments, hre);
+    const config = getContractConfig("spritzPay", _taskArguments, hre);
 
     const { args } = config;
     console.log(`Upgrading Spritz ${_taskArguments.env} contract on ${hre.network.name}`);

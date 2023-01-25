@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { task } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
 import { verifyContract } from "../utils/verify";
-import { getSwapModuleContractConfig } from "./swapModuleConfig";
+import { getContractConfig } from "./config";
 
 task("deploy:swap-module-v2").setAction(async function (_taskArguments: TaskArguments, hre) {
-  const config = getSwapModuleContractConfig(_taskArguments, hre);
+  const config = getContractConfig("swapModule", _taskArguments, hre);
 
   const args = config;
 
@@ -14,6 +16,7 @@ task("deploy:swap-module-v2").setAction(async function (_taskArguments: TaskArgu
 
   const SwapModuleFactory = await hre.ethers.getContractFactory("UniswapV2Module");
 
+  // @ts-ignore
   const swapModule = await SwapModuleFactory.deploy(...args);
   await swapModule.deployed();
 
@@ -27,7 +30,7 @@ task("deploy:swap-module-v2").setAction(async function (_taskArguments: TaskArgu
 });
 
 task("deploy:swap-module-v3").setAction(async function (_taskArguments: TaskArguments, hre) {
-  const config = getSwapModuleContractConfig(_taskArguments, hre);
+  const config = getContractConfig("swapModule", _taskArguments, hre);
 
   const args = config;
 
@@ -35,6 +38,7 @@ task("deploy:swap-module-v3").setAction(async function (_taskArguments: TaskArgu
 
   const SwapModuleFactory = await hre.ethers.getContractFactory("UniswapV3Module");
 
+  // @ts-ignore
   const swapModule = await SwapModuleFactory.deploy(...args);
   await swapModule.deployed();
 

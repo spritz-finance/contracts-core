@@ -2,10 +2,9 @@
 
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
 import "./SpritzPayV3.sol";
 import "./lib/SubscriptionChargeDate.sol";
@@ -17,8 +16,7 @@ import "./lib/SubscriptionChargeDate.sol";
  * subscriptions, allows subscriptions to be created, validated and processed, but delegates the actual payment logic
  * to the SpritzPay contract.
  */
-contract SpritzSmartPay is EIP712, AccessControlEnumerable {
-    using SafeERC20 for IERC20;
+contract SpritzSmartPay is Initializable, AccessControlEnumerableUpgradeable, EIP712Upgradeable {
     using SubscriptionChargeDate for uint256;
 
     bytes32 public constant PAYMENT_PROCESSOR_ROLE = keccak256("PAYMENT_PROCESSOR_ROLE");
@@ -128,12 +126,17 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
     }
 
     /// @notice The address of the SpritzPay smart contract
-    SpritzPayV3 internal immutable spritzPay;
+    SpritzPayV3 internal spritzPay;
 
     /// @notice Mapping of the subscription id to the subscription on-chain data
     mapping(bytes32 => Subscription) public subscriptions;
 
-    constructor(address admin, address _spritzPay, address paymentBot) EIP712("SpritzSmartPay", version()) {
+    /**
+     * @dev Constructor for upgradable contract
+     */
+    function initialize(address admin, address _spritzPay, address paymentBot) public virtual initializer {
+        __AccessControlEnumerable_init();
+        __EIP712_init("SpritzSmartPay", version());
         spritzPay = SpritzPayV3(_spritzPay);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PAYMENT_PROCESSOR_ROLE, paymentBot);
@@ -171,7 +174,7 @@ contract SpritzSmartPay is EIP712, AccessControlEnumerable {
     ) external {
         if (paymentAmountMax == 0 || startTime == 0) revert InvalidSubscription();
 
-        address subscriber = ECDSA.recover(
+        address subscriber = ECDSAUpgradeable.recover(
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(

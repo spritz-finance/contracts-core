@@ -15,7 +15,7 @@ const getStorageAddress = async (address: string, slot: number) => {
   return ethers.utils.hexStripZeros(storage);
 };
 
-describe.only("Upgrade to V3", () => {
+describe("Upgrade to V3", () => {
   it("successfully upgrade the proxy contract", async () => {
     const [admin] = await ethers.getSigners();
     const SpritzPayV1 = await ethers.getContractFactory("SpritzPayV1");
