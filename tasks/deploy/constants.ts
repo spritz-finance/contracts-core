@@ -96,6 +96,12 @@ export const SPRITZPAY_STAGING_OPTIMISM_ADDRESS = "0x4934d8dD3841CAfFf7A618aE650
 export const SPRITZPAY_OPTIMISM_ADDRESS = "0xC7689fCceB570B0BD397C847491Bc645BFDd88a3";
 
 /**
+ * SpritzSmartPay - Deployed contract addresses
+ */
+
+export const SMARTPAY_STAGING_POLYGON_ADDRESS = "0xe4eb1e80aaf7bc8dc16c712561f1fe12dd896fac";
+
+/**
  * SwapModule - Deployed contract addresses
  */
 
