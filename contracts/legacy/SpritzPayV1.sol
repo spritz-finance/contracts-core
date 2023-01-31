@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-import "./lib/SpritzPayStorage.sol";
+import "../lib/SpritzPayStorage.sol";
 
 /**
  * @title SpritzPayV1
@@ -107,7 +107,7 @@ contract SpritzPayV1 is
         address sourceTokenAddress = path[0];
         address paymentTokenAddress = path[path.length - 1];
 
-        if(!isAcceptedToken(paymentTokenAddress)) {
+        if (!isAcceptedToken(paymentTokenAddress)) {
             revert NonAcceptedToken(paymentTokenAddress);
         }
 
@@ -120,7 +120,7 @@ contract SpritzPayV1 is
             //Ensure our contract gives sufficient allowance to swap target
             uint256 allowance = sourceToken.allowance(address(this), _swapTarget);
             if (allowance < sourceTokenAmountMax) {
-                sourceToken.safeIncreaseAllowance(_swapTarget, 2**256 - 1 - allowance);
+                sourceToken.safeIncreaseAllowance(_swapTarget, 2 ** 256 - 1 - allowance);
             }
 
             //Transfer from user to our contract

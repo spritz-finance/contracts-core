@@ -10,9 +10,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import "./interfaces/IWETH9.sol";
 
-import "./lib/SpritzPayStorageV2.sol";
+import "../interfaces/IWETH9.sol";
+import "../lib/SpritzPayStorageV2.sol";
 
 /**
  * @title SpritzPayV2
