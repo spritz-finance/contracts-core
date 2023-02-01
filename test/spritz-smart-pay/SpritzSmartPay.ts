@@ -59,7 +59,7 @@ enum SubscriptionType {
   SWAP,
 }
 
-describe.only("SpritzSmartPay", () => {
+describe("SpritzSmartPay", () => {
   const setupFixture = async () => {
     const [deployer, subscriber, paymentProcessor, paymentRecipient, bob] = await ethers.getSigners();
 

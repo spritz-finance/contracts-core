@@ -141,4 +141,6 @@ contract UniswapV3Module is SwapModule {
         inputTokenAddress = swapData.parseLastAddress();
         outputTokenAddress = swapData.parseFirstAddress();
     }
+
+    receive() external payable {}
 }
