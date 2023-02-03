@@ -105,7 +105,7 @@ export const SMARTPAY_STAGING_POLYGON_ADDRESS = "0xe4eb1e80aaf7bc8dc16c712561f1f
  * SwapModule - Deployed contract addresses
  */
 
-export const SWAP_MODULE_POLYGON = "";
+export const SWAP_MODULE_POLYGON = "0x0deb97D8646e3965032F17Ed47FE3A8372140268";
 
 /**
  * SmartPayBot

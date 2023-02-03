@@ -135,4 +135,6 @@ contract UniswapV2Module is SwapModule {
         address[] memory decodedPaths = swapData.toAddressArray();
         return (decodedPaths, decodedPaths[0], decodedPaths[decodedPaths.length - 1]);
     }
+
+    receive() external payable {}
 }

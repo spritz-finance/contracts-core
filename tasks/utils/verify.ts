@@ -53,7 +53,7 @@ export async function verifyContractUsingDefender(hre: HardhatRuntimeEnvironment
   console.log(`Contract address ${receipt?.contractAddress}`);
 
   await verifyContract(receipt!.contractAddress!, hre, [], {
-    contract: "contracts/SpritzPayV2.sol:SpritzPayV2",
+    contract: "contracts/SpritzPayV3.sol:SpritzPayV3",
   });
 }
 

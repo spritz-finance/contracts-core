@@ -12,7 +12,7 @@ task("deploy:swap-module-v2").setAction(async function (_taskArguments: TaskArgu
 
   const args = config;
 
-  console.log(`Deploying SwapModule ${_taskArguments.env} contract to ${hre.network.name} with args`, { args });
+  console.log(`Deploying SwapModule contract to ${hre.network.name} with args`, { args });
 
   const SwapModuleFactory = await hre.ethers.getContractFactory("UniswapV2Module");
 
@@ -48,5 +48,18 @@ task("deploy:swap-module-v3").setAction(async function (_taskArguments: TaskArgu
 
   await verifyContract(swapModule.address, hre, args, {
     contract: "contracts/swapModules/UniswapV3Module.sol:UniswapV3Module",
+  });
+});
+
+task("verify:swap-module").setAction(async function (_taskArguments: TaskArguments, hre) {
+  const config = getContractConfig("swapModule", _taskArguments, hre);
+
+  const args = config;
+
+  const implementationAddress = "0x61E7605736BeC09803036Ec8601F888611986ee5";
+  console.log("Implementation contract address", implementationAddress);
+
+  await verifyContract(implementationAddress, hre, args, {
+    contract: "contracts/swapModules/UniswapV2Module.sol:UniswapV2Module",
   });
 });
