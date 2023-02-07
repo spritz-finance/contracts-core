@@ -28,7 +28,7 @@
   "function initialize(address,address,address,address,address[])",
   "function pause()",
   "function paused() view returns (bool)",
-  "function payWithNativeSwap(uint256,uint256,bytes32,uint256,bytes) payable",
+  "function payWithNativeSwap(uint256,bytes32,uint256,bytes) payable",
   "function payWithSwap(address,uint256,uint256,bytes32,uint256,bytes)",
   "function payWithToken(address,uint256,bytes32)",
   "function paymentRecipient() view returns (address)",

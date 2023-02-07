@@ -1,5 +1,6 @@
 import {
   ADMIN_POLYGON,
+  SMARTPAY_PRODUCTION_POLYGON_ADDRESS,
   SMARTPAY_STAGING_POLYGON_ADDRESS,
   SMART_PAY_BOT_ADDRESS_PRODUCTION,
   SMART_PAY_BOT_ADDRESS_STAGING,
@@ -17,7 +18,7 @@ const smartPayContractConfig: Record<string, Record<string, { proxy: string; arg
   },
   production: {
     "polygon-mainnet": {
-      proxy: "",
+      proxy: SMARTPAY_PRODUCTION_POLYGON_ADDRESS,
       args: [ADMIN_POLYGON, SPRITZPAY_POLYGON_ADDRESS, SMART_PAY_BOT_ADDRESS_PRODUCTION],
     },
   },

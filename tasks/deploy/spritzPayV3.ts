@@ -34,6 +34,6 @@ task("verify:spritz-pay-v3").setAction(async function (_taskArguments: TaskArgum
   console.log("Implementation contract address", implementationAddress);
 
   await verifyContract(implementationAddress, hre, [], {
-    contract: "contracts/SpritzPayV2.sol:SpritzPayV2",
+    contract: "contracts/SpritzPayV3.sol:SpritzPayV3",
   });
 });

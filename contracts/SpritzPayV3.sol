@@ -217,13 +217,11 @@ contract SpritzPayV3 is
      * @notice Pay by swapping native currency. Uses
      *          Uniswap exact output trade type
      * @param path Swap path
-     * @param sourceTokenAmountMax Maximum amount of the token being sold for payment
      * @param paymentTokenAmount Exact Amount of the target payment token
      * @param paymentReference Arbitrary reference ID of the related payment
      * @param deadline Swap deadline
      */
     function payWithNativeSwap(
-        uint256 sourceTokenAmountMax,
         uint256 paymentTokenAmount,
         bytes32 paymentReference,
         uint256 deadline,
@@ -232,11 +230,11 @@ contract SpritzPayV3 is
         (address sourceToken, address paymentToken) = _swapModule.decodeSwapData(path);
         if (!isAcceptedToken(paymentToken)) revert NonAcceptedToken(paymentToken);
 
-        uint256 sourceTokenAmountSpent = _swapModule.exactOutputNativeSwap{ value: sourceTokenAmountMax }(
+        uint256 sourceTokenAmountSpent = _swapModule.exactOutputNativeSwap{ value: msg.value }(
             SwapModule.ExactOutputParams({
                 to: _paymentRecipient,
                 from: msg.sender,
-                inputTokenAmountMax: sourceTokenAmountMax,
+                inputTokenAmountMax: msg.value,
                 paymentTokenAmount: paymentTokenAmount,
                 deadline: deadline,
                 swapData: path
