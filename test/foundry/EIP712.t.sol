@@ -2,21 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
-import { SpritzSmartPay } from "../../contracts/SpritzSmartPay.sol";
-
-contract SpritzSmartPayHarness is SpritzSmartPay {
-    address internal _admin = address(1);
-    address internal _spritzPay = address(2);
-    address internal _paymentBot = address(3);
-
-    constructor() {
-        initialize(_admin, _spritzPay, _paymentBot);
-    }
-
-    function DOMAIN_SEPARATOR() external view returns (bytes32) {
-        return _domainSeparatorV4();
-    }
-}
+import { SpritzSmartPayHarness } from "./harnesses/SpritzSmartPayHarness.sol";
 
 // forge test --match-contract EIP712
 contract EIP712Test is Test {
