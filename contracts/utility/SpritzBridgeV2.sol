@@ -41,7 +41,7 @@ contract SpritzBridgeV2 is AccessControlEnumerable {
     /**
      * @dev Sets a new address for the bridge target
      */
-    function _setBridgeTarget(address newBridgeTarget) internal virtual {
+    function _setBridgeTarget(address newBridgeTarget) internal {
         _bridgeTarget = newBridgeTarget;
         emit BridgeConfigured(_bridgeTarget);
     }
@@ -49,7 +49,7 @@ contract SpritzBridgeV2 is AccessControlEnumerable {
     /**
      * @dev Returns the address of the bridge target
      */
-    function bridgeTarget() public view virtual returns (address) {
+    function bridgeTarget() public view returns (address) {
         return _bridgeTarget;
     }
 
