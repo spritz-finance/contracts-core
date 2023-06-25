@@ -34,9 +34,9 @@ const alchemyMainnetKey: string | undefined = process.env.ALCHEMY_MAINNET_KEY;
 const alchemyPolygonMumbaiKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
 
-// export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
-export const FORKING_URL = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
-export const FORKING_CHAIN = "bsc";
+export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
+// export const FORKING_URL = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
+export const FORKING_CHAIN = "polygon-mainnet";
 
 const chainIds = {
   "arbitrum-mainnet": 42161,
