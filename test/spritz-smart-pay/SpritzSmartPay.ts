@@ -1,5 +1,4 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
 import { ethers, upgrades, waffle } from "hardhat";
 
@@ -15,6 +14,7 @@ import {
   WETH9__factory,
 } from "../../src/types";
 import { MockToken__factory } from "../../src/types/factories/contracts/test/MockToken__factory";
+import { formatPaymentReference } from "../utils";
 import { getSubscriptionCreatedEventData } from "./utilities/events";
 import { getSignedSubscription } from "./utilities/signedSubscription";
 

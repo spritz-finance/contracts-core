@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 
 import { SpritzReceiverFactory } from "../src/types";
 
-describe.only("SpritzReceiver", function () {
+describe("SpritzReceiver", function () {
   let controller: SignerWithAddress;
   let deployer: SignerWithAddress;
   let spritzPayAdmin: SignerWithAddress;
