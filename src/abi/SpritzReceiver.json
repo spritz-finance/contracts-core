@@ -1,6 +1,5 @@
 [
   "constructor(address,address,bytes32) payable",
-  "error InsufficientBalance()",
   "error NotController()",
   "event EtherReceived(address indexed,uint256)",
   "function payWithNativeSwap(uint256,uint256,uint256,bytes)",

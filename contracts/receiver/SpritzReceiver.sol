@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SpritzPayV3 } from "../SpritzPayV3.sol";
 
 contract SpritzReceiver {
-    error InsufficientBalance();
     error NotController();
 
     event EtherReceived(address indexed sender, uint256 value);
@@ -27,7 +26,6 @@ contract SpritzReceiver {
     }
 
     function payWithToken(IERC20 token, uint256 amount) external onlyController {
-        if (token.balanceOf(address(this)) < amount) revert InsufficientBalance();
         ensureSpritzPayAllowance(token);
         SpritzPayV3(spritzPay).payWithToken(address(token), amount, accountReference);
     }
@@ -38,7 +36,6 @@ contract SpritzReceiver {
         uint256 deadline,
         bytes calldata swapData
     ) external onlyController {
-        if (address(this).balance < inputTokenAmount) revert InsufficientBalance();
         SpritzPayV3(spritzPay).payWithNativeSwap{ value: inputTokenAmount }(
             amount,
             accountReference,
@@ -54,7 +51,6 @@ contract SpritzReceiver {
         uint256 deadline,
         bytes calldata swapData
     ) external onlyController {
-        if (IERC20(sourceTokenAddress).balanceOf(address(this)) < sourceTokenAmountMax) revert InsufficientBalance();
         ensureSpritzPayAllowance(IERC20(sourceTokenAddress));
         SpritzPayV3(spritzPay).payWithSwap(
             sourceTokenAddress,
@@ -68,7 +64,6 @@ contract SpritzReceiver {
 
     function ensureSpritzPayAllowance(IERC20 token) internal {
         uint256 allowance = token.allowance(address(this), spritzPay);
-
         if (allowance == 0) {
             token.approve(spritzPay, type(uint256).max);
         }
