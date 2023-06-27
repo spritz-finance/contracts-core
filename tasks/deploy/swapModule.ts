@@ -85,3 +85,25 @@ task("deploy:swap-module-paraswap").setAction(async function (_taskArguments: Ta
     contract: "contracts/swapModules/ParaswapModule.sol:ParaswapModule",
   });
 });
+
+task("deploy:swap-module-paraswap-bsc").setAction(async function (_taskArguments: TaskArguments, hre) {
+  const config = getContractConfig("swapModule", _taskArguments, hre);
+
+  const args = config;
+
+  console.log(`Deploying SwapModule contract to ${hre.network.name} with args`, { args });
+
+  const SwapModuleFactory = await hre.ethers.getContractFactory("ParaswapModuleBSC");
+
+  // @ts-ignore
+  const swapModule = await SwapModuleFactory.deploy(...args);
+  await swapModule.deployed();
+
+  console.log("Deployed SwapModule V3 to: ", swapModule.address);
+
+  await swapModule.deployTransaction.wait(5);
+
+  await verifyContract(swapModule.address, hre, args, {
+    contract: "contracts/swapModules/ParaswapModuleBSC.sol:ParaswapModuleBSC",
+  });
+});

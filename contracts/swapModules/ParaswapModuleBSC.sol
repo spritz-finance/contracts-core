@@ -10,7 +10,7 @@ import { IParaSwapAugustus } from "../interfaces/IParaSwapAugustus.sol";
 
 pragma solidity ^0.8.7;
 
-contract ParaswapModuleBNB is SwapModule {
+contract ParaswapModuleBSC is SwapModule {
     using SafeERC20 for IERC20;
 
     error FailedRefund();
