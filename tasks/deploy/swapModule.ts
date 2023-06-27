@@ -56,7 +56,7 @@ task("verify:swap-module").setAction(async function (_taskArguments: TaskArgumen
 
   const args = config;
 
-  const implementationAddress = "0x118E45E96694A64da0e750Ef3131060ED1C5e8Ca";
+  const implementationAddress = "0x61B6960C3590e01c82d589E4119D90Ec207af765";
   console.log("Implementation contract address", implementationAddress);
   console.log({ args });
   await verifyContract(implementationAddress, hre, args, {
