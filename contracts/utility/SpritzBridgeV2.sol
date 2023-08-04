@@ -71,6 +71,7 @@ contract SpritzBridgeV2 is AccessControlEnumerable {
      */
     function bridgeToken(address token, uint amount, bytes calldata bridgeCallData) external onlyRole(BRIDGE_ROLE) payable {
         require(amount <= IERC20(token).balanceOf(address(this)), "Amount exceeds balance");
+        IERC20(token).safeApprove(_bridgeTarget, 0);
         IERC20(token).safeApprove(_bridgeTarget, amount);
         _bridgeTarget.call{value: msg.value}(bridgeCallData);
     }
