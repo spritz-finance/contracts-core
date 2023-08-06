@@ -14,7 +14,6 @@ module.exports = function (deployer) {
     USDT_TRON, //usdt token address
     USDC_TRON, //usdc token address
     ...USDT_USDC_POOL,
-    process.env.TRON_USDC_RECEIVER, //receiving address
   ];
 
   deployer.deploy(SpritzTronReceiver, ...args);

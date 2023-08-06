@@ -38,7 +38,7 @@ interface ICurvePool {
 /**
  * @title SpritzBridgeV2
  * @author Spritz Finance
- * @notice A utility contract for facilitating bridging received funds via Jumper
+ * @notice A utility contract for facilitating offloading USDT to USDC
  */
 contract SpritzTronReceiver is AccessControlEnumerable {
 
@@ -57,17 +57,13 @@ contract SpritzTronReceiver is AccessControlEnumerable {
     int128 public usdtIndex;
     int128 public usdcIndex;
 
-    address public receivingAddress;
-
     constructor(
         address _usdt,
         address _usdc,
 
         address _curvePool,
         int128 _usdtIndex,
-        int128 _usdcIndex,
-
-        address _receivingAddress
+        int128 _usdcIndex
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(WITHDRAW_ROLE, msg.sender);
@@ -79,20 +75,10 @@ contract SpritzTronReceiver is AccessControlEnumerable {
         curvePool = ICurvePool(_curvePool);
         usdtIndex = _usdtIndex;
         usdcIndex = _usdcIndex;
-
-        receivingAddress = _receivingAddress;
     }
 
     /**
-     * @dev Set the receiving address
-     * @param _receivingAddress Receiving address
-     */
-    function setReceivingAddress(address _receivingAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        receivingAddress = _receivingAddress;
-    }
-
-    /**
-     * @dev Set the receiving address
+     * @dev Set the curve pool parameters
      * @param _curvePool Address of USDT/USDC Curve pool
      * @param _usdtIndex Index of usdt
      * @param _usdcIndex Index of usdc
@@ -105,7 +91,7 @@ contract SpritzTronReceiver is AccessControlEnumerable {
 
 
     /**
-     * @dev Exchange USDT to USDC and send
+     * @dev Exchange USDT to USDC and send back
      */
     function exchange() public onlyRole(BRIDGE_ROLE) {
         uint256 usdtBalance = usdt.balanceOf(address(this));
@@ -120,10 +106,10 @@ contract SpritzTronReceiver is AccessControlEnumerable {
         // Perform the exchange
         curvePool.exchange_underlying(usdtIndex, usdcIndex, usdtBalance, min_dy);
 
-        // Transfer the received USDC to the predefined address
+        // Transfer back the received USDC
         uint256 usdcBalance = usdc.balanceOf(address(this));
         require(usdcBalance > 0, "No USDC to transfer");
-        usdc.transfer(receivingAddress, usdcBalance);
+        usdc.transfer(msg.sender, usdcBalance);
     }
 
 
