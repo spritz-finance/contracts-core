@@ -28,6 +28,7 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     constructor(address _controller, address _spritzPay) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(DEPLOYER_ROLE, msg.sender);
+        _setupRole(DEPLOYER_ROLE, _controller);
         controller = _controller;
         spritzPay = _spritzPay;
     }
