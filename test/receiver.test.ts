@@ -21,7 +21,7 @@ describe("SpritzReceiver", function () {
   });
 
   it("deploys a SpritzReceiver and prevents subsequent deployments", async function () {
-    const reference = ethers.utils.keccak256("0x01");
+    const reference = ethers.utils.keccak256("0x64ec54b6a7ab473f7713b63a");
 
     const deployTx = await receiverDeployer
       .connect(deployer)
