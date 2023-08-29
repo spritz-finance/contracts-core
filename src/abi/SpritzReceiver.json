@@ -1,9 +1,12 @@
 [
-  "constructor(address,address,bytes32) payable",
+  "constructor(address,address,address,bytes32) payable",
+  "error FailedSweep()",
+  "error InvalidPaymentToken()",
+  "error InvalidSourceToken()",
   "error NotController()",
-  "event EtherReceived(address indexed,uint256)",
-  "function payWithNativeSwap(uint256,uint256,uint256,bytes)",
-  "function payWithSwap(address,uint256,uint256,uint256,bytes)",
+  "error SwapFailure()",
+  "function nativeSweep(address)",
+  "function payWithSwap(uint256,uint256,uint256,bytes)",
   "function payWithToken(address,uint256)",
   "function sweep(address,address)"
 ]

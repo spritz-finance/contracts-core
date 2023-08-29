@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
  * @dev This contract acts as a factory for deploying SpritzReceiver instances using CREATE2.
  */
 contract SpritzReceiverFactory is AccessControlEnumerable {
-
     using Create2 for bytes32;
 
     bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
@@ -22,6 +21,8 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     // Immutable variables for controller and spritzPay
     address public immutable spritzPay;
     address public immutable controller;
+
+    address public swapModule;
 
     event ContractDeployed(address deployedAddress);
 
@@ -39,11 +40,11 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @return The address of the deployed contract.
      */
     function deploy(bytes32 accountReference) public onlyRole(DEPLOYER_ROLE) returns (address) {
-        bytes32 salt = getSalt(controller, spritzPay, accountReference);
+        bytes32 salt = getSalt(controller, spritzPay, address(this), accountReference);
 
         bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
             contractBytecode,
-            abi.encode(controller, spritzPay, accountReference)
+            abi.encode(controller, spritzPay, address(this), accountReference)
         );
 
         address deployedAddress = Create2.deploy(0, salt, bytecodeWithConstructorArgs);
@@ -57,15 +58,23 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @param accountReference The reference for the account (usually bytes32).
      * @return The computed address of the contract.
      */
-    function computeAddress(bytes32 accountReference) public view returns (address) {
-        bytes32 salt = getSalt(controller, spritzPay, accountReference);
+    function computeAddress(bytes32 accountReference) external view returns (address) {
+        bytes32 salt = getSalt(controller, spritzPay, address(this), accountReference);
 
         bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
             contractBytecode,
-            abi.encode(controller, spritzPay, accountReference)
+            abi.encode(controller, spritzPay, address(this), accountReference)
         );
 
         return Create2.computeAddress(salt, keccak256(bytecodeWithConstructorArgs));
+    }
+
+    /**
+     * @dev Return the address of the swap module used for all receivers
+     * @return The current swap module address
+     */
+    function getSwapModule() external view returns (address) {
+        return swapModule;
     }
 
     /**
@@ -75,7 +84,12 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @param _accountReference The reference for the account (usually bytes32).
      * @return The unique salt for the CREATE2 operation.
      */
-    function getSalt(address _controller, address _spritzPay, bytes32 _accountReference) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_controller, _spritzPay, _accountReference));
+    function getSalt(
+        address _controller,
+        address _spritzPay,
+        address _factory,
+        bytes32 _accountReference
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_controller, _spritzPay, _factory, _accountReference));
     }
 }

@@ -23,7 +23,7 @@ const LINK_POLYGON = "0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39";
 const PARASWAP_REGISTRY_POLYGON = "0xca35a4866747Ff7A604EF7a2A7F246bb870f3ca1";
 const WETH_POLYGON = WMATIC_POLYGON_ADDRESS;
 
-describe.only("ParaswapModule", function () {
+describe("ParaswapModule", function () {
   this.timeout(10000000);
   let admin: SignerWithAddress;
   let sdk: SpritzPayV3SDK;

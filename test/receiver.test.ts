@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 
 import { SpritzReceiverFactory } from "../src/types";
 
-describe("SpritzReceiver", function () {
+describe.only("SpritzReceiver", function () {
   let controller: SignerWithAddress;
   let deployer: SignerWithAddress;
   let spritzPayAdmin: SignerWithAddress;
@@ -17,19 +17,17 @@ describe("SpritzReceiver", function () {
     spritzPayAdmin = signers[2];
 
     const receiverDeployerFactory = await ethers.getContractFactory("SpritzReceiverFactory");
-    receiverDeployer = await receiverDeployerFactory.connect(deployer).deploy();
+    receiverDeployer = await receiverDeployerFactory
+      .connect(deployer)
+      .deploy(controller.address, spritzPayAdmin.address);
   });
 
   it("deploys a SpritzReceiver and prevents subsequent deployments", async function () {
     const reference = ethers.utils.keccak256("0x64ec54b6a7ab473f7713b63a");
 
-    const deployTx = await receiverDeployer
-      .connect(deployer)
-      .deploy(controller.address, spritzPayAdmin.address, reference);
+    const deployTx = await receiverDeployer.connect(deployer).deploy(reference);
     await deployTx.wait();
 
-    await expect(
-      receiverDeployer.connect(deployer).deploy(controller.address, spritzPayAdmin.address, reference),
-    ).to.be.revertedWith("Create2: Failed on deploy");
+    await expect(receiverDeployer.connect(deployer).deploy(reference)).to.be.revertedWith("Create2: Failed on deploy");
   });
 });
