@@ -45,7 +45,7 @@ import {
 const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const spritzPayContractConfig: Record<string, Record<string, { proxy: string; args: any[] }>> = {
+export const spritzPayContractConfig: Record<string, Record<string, { proxy: string; args: any[] }>> = {
   staging: {
     "polygon-mainnet": {
       proxy: SPRITZPAY_STAGING_POLYGON_ADDRESS,

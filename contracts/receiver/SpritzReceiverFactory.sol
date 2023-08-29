@@ -11,52 +11,70 @@ import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
  * @dev This contract acts as a factory for deploying SpritzReceiver instances using CREATE2.
  */
 contract SpritzReceiverFactory is AccessControlEnumerable {
-    event ReceiverDeployed(address indexed receiver);
 
-    bytes public constant CREATION_CODE = type(SpritzReceiver).creationCode;
+    using Create2 for bytes32;
+
     bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
 
-    constructor() {
+    // Bytecode for the contract to be deployed
+    bytes public constant contractBytecode = type(SpritzReceiver).creationCode;
+
+    // Immutable variables for controller and spritzPay
+    address public immutable spritzPay;
+    address public immutable controller;
+
+    event ContractDeployed(address deployedAddress);
+
+    constructor(address _controller, address _spritzPay) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(DEPLOYER_ROLE, msg.sender);
-    }
-
-    /**
-     * @dev Generate a unique salt value from controller, spritzPay, and accountReference.
-     * @param controller The address for the controller.
-     * @param spritzPay The address for SpritzPay.
-     * @param accountReference The reference for the target account
-     * @return The unique salt for the CREATE2 operation.
-     */
-    function getSalt(address controller, address spritzPay, bytes32 accountReference) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(controller, spritzPay, accountReference));
+        controller = _controller;
+        spritzPay = _spritzPay;
     }
 
     /**
      * @dev Deploy a new contract instance using CREATE2.
-     * @param controller The address for the controller.
-     * @param spritzPay The address for SpritzPay.
-     * @param accountReference The reference for the target account
+     * @param accountReference The reference for the account (usually bytes32).
      * @return The address of the deployed contract.
      */
-    function deploy(address controller, address spritzPay, bytes32 accountReference) external onlyRole(DEPLOYER_ROLE) returns (address) {
+    function deploy(bytes32 accountReference) public onlyRole(DEPLOYER_ROLE) returns (address) {
         bytes32 salt = getSalt(controller, spritzPay, accountReference);
-        address deployedAddress = Create2.deploy(0, salt, CREATION_CODE);
 
-        emit ReceiverDeployed(deployedAddress);
+        bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
+            contractBytecode,
+            abi.encode(controller, spritzPay, accountReference)
+        );
+
+        address deployedAddress = Create2.deploy(0, salt, bytecodeWithConstructorArgs);
+        emit ContractDeployed(deployedAddress);
+
         return deployedAddress;
     }
 
-
     /**
-    * @dev Compute the address of a contract that would be deployed using specific parameters.
-     * @param controller The address for the controller.
-     * @param spritzPay The address for SpritzPay.
-     * @param accountReference The reference for the target account
+     * @dev Compute the address of a contract that would be deployed using a specific accountReference.
+     * @param accountReference The reference for the account (usually bytes32).
      * @return The computed address of the contract.
      */
-    function computeAddress(address controller, address spritzPay, bytes32 accountReference) external view returns (address) {
+    function computeAddress(bytes32 accountReference) public view returns (address) {
         bytes32 salt = getSalt(controller, spritzPay, accountReference);
-        return Create2.computeAddress(salt, keccak256(CREATION_CODE));
+
+        bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
+            contractBytecode,
+            abi.encode(controller, spritzPay, accountReference)
+        );
+
+        return Create2.computeAddress(salt, keccak256(bytecodeWithConstructorArgs));
+    }
+
+    /**
+     * @dev Generate a unique salt value from controller, spritzPay, and accountReference.
+     * @param _controller The address for the controller.
+     * @param _spritzPay The address for SpritzPay.
+     * @param _accountReference The reference for the account (usually bytes32).
+     * @return The unique salt for the CREATE2 operation.
+     */
+    function getSalt(address _controller, address _spritzPay, bytes32 _accountReference) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_controller, _spritzPay, _accountReference));
     }
 }
