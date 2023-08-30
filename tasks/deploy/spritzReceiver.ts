@@ -9,8 +9,9 @@ task("deploy:SpritzReceiverFactory")
   .addOptionalParam("env", "Production or Staging", "production", types.string)
   .setAction(async function (_taskArguments: TaskArguments, hre) {
     const config = getContractConfig("receiverFactory", _taskArguments, hre);
+
     const receiverFactory = await hre.ethers.getContractFactory("SpritzReceiverFactory");
-    console.log("Deploying");
+    console.log("Deploying with config", config);
     const receiverFactoryContract = await receiverFactory.deploy(
       ...(config.args as Parameters<SpritzReceiverFactory__factory["deploy"]>),
     );
@@ -18,6 +19,11 @@ task("deploy:SpritzReceiverFactory")
     console.log(
       `Deployed to ${receiverFactoryContract.address} with tx: ${receiverFactoryContract.deployTransaction.hash}`,
     );
+
+    console.log("Setting spritzPay");
+    await receiverFactoryContract.setSpritzPay(config.spritzPay);
+    console.log("Done");
+
     await hre.run(`verify:verify`, {
       address: receiverFactoryContract.address,
       contract: "contracts/receiver/SpritzReceiverFactory.sol:SpritzReceiverFactory",

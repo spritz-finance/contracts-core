@@ -8,6 +8,7 @@ const CONTROLLERS: Record<string, string> = {
 export const getReceiverFactoryContractConfig = (env: string, network: string) => {
   const spritzPayConfig = getSpritzPayContractConfig(env, network);
   return {
-    args: [CONTROLLERS[env], spritzPayConfig.proxy],
+    args: [CONTROLLERS[env]],
+    spritzPay: spritzPayConfig.proxy,
   };
 };
