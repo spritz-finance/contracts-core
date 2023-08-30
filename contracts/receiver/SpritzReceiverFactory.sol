@@ -19,19 +19,18 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     bytes public constant contractBytecode = type(SpritzReceiver).creationCode;
 
     // Immutable variables for controller and spritzPay
-    address public immutable spritzPay;
     address public immutable controller;
 
     address public swapModule;
+    address public spritzPay;
 
     event ContractDeployed(address deployedAddress);
 
-    constructor(address _controller, address _spritzPay) {
+    constructor(address _controller) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(DEPLOYER_ROLE, msg.sender);
         _setupRole(DEPLOYER_ROLE, _controller);
         controller = _controller;
-        spritzPay = _spritzPay;
     }
 
     /**
@@ -39,16 +38,16 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @param accountReference The reference for the account (usually bytes32).
      * @return The address of the deployed contract.
      */
-    function deploy(bytes32 accountReference) public onlyRole(DEPLOYER_ROLE) returns (address) {
-        bytes32 salt = getSalt(accountReference);
+    function deploy(bytes32 accountReference) external onlyRole(DEPLOYER_ROLE) returns (address) {
+        bytes32 salt = getSalt(controller, accountReference);
 
-        address deployedAddress = Create2.deploy(0, salt, contractBytecode);
+        bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
+            contractBytecode,
+            abi.encode(controller, accountReference)
+        );
+        address deployedAddress = Create2.deploy(0, salt, bytecodeWithConstructorArgs);
 
         emit ContractDeployed(deployedAddress);
-
-        SpritzReceiver sr = SpritzReceiver(payable(deployedAddress));
-        sr.setup(controller, spritzPay, address(this), accountReference);
-
 
         return deployedAddress;
     }
@@ -59,26 +58,45 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @return The computed address of the contract.
      */
     function computeAddress(bytes32 accountReference) external view returns (address) {
-        bytes32 salt = getSalt(accountReference);
-        return Create2.computeAddress(salt, keccak256(contractBytecode));
+        bytes32 salt = getSalt(controller, accountReference);
+
+        bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
+            contractBytecode,
+            abi.encode(controller, accountReference)
+        );
+
+        return Create2.computeAddress(salt, keccak256(bytecodeWithConstructorArgs));
     }
 
     /**
      * @dev Return the address of the swap module used for all receivers
      * @return The current swap module address
      */
-    function getSwapModule() external view returns (address) {
-        return swapModule;
+    function getDestinationAddresses() external view returns (address, address) {
+        return (spritzPay, swapModule);
+    }
+
+    /**
+     * @dev Return the address of the swap module used for all receivers
+     */
+    function setSpritzPay(address _spritzPay) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        spritzPay = _spritzPay;
+    }
+
+    /**
+     * @dev Return the address of the swap module used for all receivers
+     */
+    function setSwapModule(address _swapModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        swapModule = _swapModule;
     }
 
     /**
      * @dev Generate a unique salt value from accountReference.
+     * @param _controller The controller of the contracts
      * @param _accountReference The reference for the account
      * @return The unique salt for the CREATE2 operation.
      */
-    function getSalt(
-        bytes32 _accountReference
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_accountReference));
+    function getSalt(address _controller, bytes32 _accountReference) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_controller, _accountReference));
     }
 }

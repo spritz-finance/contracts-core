@@ -10,44 +10,35 @@ interface ISpritzPay {
 }
 
 interface IReceiverFactory {
-    function getSwapModule() external view returns (address);
+    function getDestinationAddresses() external view returns (address, address);
 }
 
 contract SpritzReceiver {
     error NotController();
+    error AlreadyInitialized();
     error SwapFailure();
     error InvalidSourceToken();
     error InvalidPaymentToken();
     error FailedSweep();
 
-    bytes32 private accountReference;
-    address private spritzPay;
-    address private factory;
-    address private controller;
-    bool private isSetup;
+    bytes32 private immutable accountReference;
+    address private immutable controller;
+    address private immutable factory;
 
     modifier onlyController() {
         if (msg.sender != controller) revert NotController();
         _;
     }
 
-    constructor() payable {
-
-    }
-
-    function setup(address _controller, address _spritzPay, address _factory, bytes32 _accountReference) public {
-        require(!isSetup, "Already set up");
+    constructor(address _controller, bytes32 _accountReference) payable {
         controller = _controller;
-        spritzPay = _spritzPay;
-        factory = _factory;
         accountReference = _accountReference;
-        isSetup = true;
+        factory = msg.sender;
     }
-
 
     function payWithToken(address token, uint256 amount) public onlyController {
-        ensureSpritzPayAllowance(token);
-        ISpritzPay(spritzPay).payWithToken(address(token), amount, accountReference);
+        (address spritzPay, ) = IReceiverFactory(factory).getDestinationAddresses();
+        _payWithToken(spritzPay, token, amount);
     }
 
     function payWithSwap(
@@ -56,7 +47,7 @@ contract SpritzReceiver {
         uint256 deadline,
         bytes calldata swapData
     ) external onlyController {
-        address swapModule = IReceiverFactory(factory).getSwapModule();
+        (address spritzPay, address swapModule) = IReceiverFactory(factory).getDestinationAddresses();
 
         (address sourceToken, address paymentToken, address weth) = decodeSwapData(swapModule, swapData);
         string memory selector = sourceToken == weth ? "exactInputNativeSwap(bytes)" : "exactInputSwap(bytes)";
@@ -71,10 +62,15 @@ contract SpritzReceiver {
 
         uint256 paymentTokenBalance = delegateSwap(swapModule, abi.encodeWithSignature(selector, swapParams));
 
-        payWithToken(paymentToken, paymentTokenBalance);
+        _payWithToken(spritzPay, paymentToken, paymentTokenBalance);
     }
 
-    function ensureSpritzPayAllowance(address token) internal {
+    function _payWithToken(address spritzPay, address token, uint256 amount) internal {
+        ensureSpritzPayAllowance(spritzPay, token);
+        ISpritzPay(spritzPay).payWithToken(address(token), amount, accountReference);
+    }
+
+    function ensureSpritzPayAllowance(address spritzPay, address token) internal {
         uint256 allowance = IERC20(token).allowance(address(this), spritzPay);
         if (allowance == 0) {
             IERC20(token).approve(spritzPay, type(uint256).max);
