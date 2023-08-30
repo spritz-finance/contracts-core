@@ -1,5 +1,5 @@
 [
-  "constructor(address,address,address,bytes32) payable",
+  "constructor() payable",
   "error FailedSweep()",
   "error InvalidPaymentToken()",
   "error InvalidSourceToken()",
@@ -8,5 +8,6 @@
   "function nativeSweep(address)",
   "function payWithSwap(uint256,uint256,uint256,bytes)",
   "function payWithToken(address,uint256)",
+  "function setup(address,address,address,bytes32)",
   "function sweep(address,address)"
 ]

@@ -40,15 +40,15 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @return The address of the deployed contract.
      */
     function deploy(bytes32 accountReference) public onlyRole(DEPLOYER_ROLE) returns (address) {
-        bytes32 salt = getSalt(controller, spritzPay, address(this), accountReference);
+        bytes32 salt = getSalt(accountReference);
 
-        bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
-            contractBytecode,
-            abi.encode(controller, spritzPay, address(this), accountReference)
-        );
+        address deployedAddress = Create2.deploy(0, salt, contractBytecode);
 
-        address deployedAddress = Create2.deploy(0, salt, bytecodeWithConstructorArgs);
         emit ContractDeployed(deployedAddress);
+
+        SpritzReceiver sr = SpritzReceiver(payable(deployedAddress));
+        sr.setup(controller, spritzPay, address(this), accountReference);
+
 
         return deployedAddress;
     }
@@ -59,7 +59,7 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      * @return The computed address of the contract.
      */
     function computeAddress(bytes32 accountReference) external view returns (address) {
-        bytes32 salt = getSalt(controller, spritzPay, address(this), accountReference);
+        bytes32 salt = getSalt(accountReference);
 
         bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
             contractBytecode,
@@ -78,18 +78,13 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     }
 
     /**
-     * @dev Generate a unique salt value from controller, spritzPay, and accountReference.
-     * @param _controller The address for the controller.
-     * @param _spritzPay The address for SpritzPay.
-     * @param _accountReference The reference for the account (usually bytes32).
+     * @dev Generate a unique salt value from accountReference.
+     * @param _accountReference The reference for the account
      * @return The unique salt for the CREATE2 operation.
      */
     function getSalt(
-        address _controller,
-        address _spritzPay,
-        address _factory,
         bytes32 _accountReference
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_controller, _spritzPay, _factory, _accountReference));
+        return keccak256(abi.encodePacked(_accountReference));
     }
 }

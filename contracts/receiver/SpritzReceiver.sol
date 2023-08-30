@@ -20,22 +20,30 @@ contract SpritzReceiver {
     error InvalidPaymentToken();
     error FailedSweep();
 
-    bytes32 private immutable accountReference;
-    address private immutable spritzPay;
-    address private immutable factory;
-    address private immutable controller;
+    bytes32 private accountReference;
+    address private spritzPay;
+    address private factory;
+    address private controller;
+    bool private isSetup;
 
     modifier onlyController() {
         if (msg.sender != controller) revert NotController();
         _;
     }
 
-    constructor(address _controller, address _spritzPay, address _factory, bytes32 _accountReference) payable {
+    constructor() payable {
+
+    }
+
+    function setup(address _controller, address _spritzPay, address _factory, bytes32 _accountReference) public {
+        require(!isSetup, "Already set up");
         controller = _controller;
         spritzPay = _spritzPay;
         factory = _factory;
         accountReference = _accountReference;
+        isSetup = true;
     }
+
 
     function payWithToken(address token, uint256 amount) public onlyController {
         ensureSpritzPayAllowance(token);
