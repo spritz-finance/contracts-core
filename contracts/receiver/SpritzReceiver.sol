@@ -16,10 +16,7 @@ interface IReceiverFactory {
 contract SpritzReceiver {
     error NotController();
     error InvalidDestination();
-    error AlreadyInitialized();
     error SwapFailure();
-    error InvalidSourceToken();
-    error InvalidPaymentToken();
     error FailedSweep();
 
     bytes32 private immutable accountReference;
