@@ -37,7 +37,7 @@ contract SpritzReceiver {
         factory = msg.sender;
     }
 
-    function payWithToken(address token, uint256 amount) public onlyController {
+    function payWithToken(address token, uint256 amount) external onlyController {
         (address spritzPay, ) = getDestinationAddresses();
         _payWithToken(spritzPay, token, amount);
     }
