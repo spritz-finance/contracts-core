@@ -24,6 +24,10 @@ task("deploy:SpritzReceiverFactory")
     await receiverFactoryContract.setSpritzPay(config.spritzPay);
     console.log("Done");
 
+    console.log("Setting swapModule");
+    await receiverFactoryContract.setSwapModule(config.swapModule);
+    console.log("Done");
+
     await hre.run(`verify:verify`, {
       address: receiverFactoryContract.address,
       contract: "contracts/receiver/SpritzReceiverFactory.sol:SpritzReceiverFactory",
