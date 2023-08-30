@@ -18,11 +18,10 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     // Bytecode for the contract to be deployed
     bytes public constant contractBytecode = type(SpritzReceiver).creationCode;
 
-    // Immutable variables for controller and spritzPay
     address public immutable controller;
 
-    address public swapModule;
     address public spritzPay;
+    address public swapModule;
 
     event ContractDeployed(address deployedAddress);
 
@@ -69,22 +68,21 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     }
 
     /**
-     * @dev Return the address of the swap module used for all receivers
-     * @return The current swap module address
+     * @dev Return the address of spritz pay and swap module used for all receivers
      */
     function getDestinationAddresses() external view returns (address, address) {
         return (spritzPay, swapModule);
     }
 
     /**
-     * @dev Return the address of the swap module used for all receivers
+     * @dev Set the address of the spritz pay contract
      */
     function setSpritzPay(address _spritzPay) external onlyRole(DEFAULT_ADMIN_ROLE) {
         spritzPay = _spritzPay;
     }
 
     /**
-     * @dev Return the address of the swap module used for all receivers
+     * @dev Set the address of the swap module contract
      */
     function setSwapModule(address _swapModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
         swapModule = _swapModule;

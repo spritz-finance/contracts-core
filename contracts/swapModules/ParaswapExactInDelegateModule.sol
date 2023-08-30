@@ -42,34 +42,36 @@ contract ParaswapExactInDelegateModule is ExactInputDelegateSwapModule {
     /**
      * @notice performs an exact input swap using native ETH
      * @param swapParams the parameters required to make the swap (See: ExactInputDelegateSwapModule.ExactInputParams)
-     * @return outputTokenBalance the balance of the output token after the swap
+     * @return outputTokenReceived the amount of the token received by the swap
      */
     function exactInputNativeSwap(ExactInputParams calldata swapParams) external payable override returns (uint256) {
         weth.deposit{ value: swapParams.inputTokenAmount }();
 
-        (IERC20 inputTokenAddress, uint256 outputTokenBalance) = _exactInputSwap(swapParams);
+        (address inputTokenAddress, uint256 outputTokenReceived) = _exactInputSwap(swapParams);
 
         if (address(inputTokenAddress) != address(weth)) revert InvalidNativeSwap();
 
-        return outputTokenBalance;
+        return outputTokenReceived;
     }
 
     /**
      * @notice performs an exact output swap using an ERC-20 token and refunds leftover tokens to the user
      * @param swapParams the parameters required to make the swap (See: ExactInputDelegateSwapModule.ExactInputParams)
-     * @return outputTokenBalance the balance of the output token after the swap
+     * @return outputTokenReceived the amount of the token received by the swap
      */
-    function exactInputSwap(ExactInputParams calldata swapParams) public override returns (uint256 outputTokenBalance) {
-        (, outputTokenBalance) = _exactInputSwap(swapParams);
+    function exactInputSwap(
+        ExactInputParams calldata swapParams
+    ) external override returns (uint256 outputTokenReceived) {
+        (, outputTokenReceived) = _exactInputSwap(swapParams);
     }
 
     /**
      * @notice private method to perform an exact input swap on the augustus router
      * @param swapParams the parameters required to make the swap (See: ExactInputDelegateSwapModule.ExactInputParams)
      * @return inputTokenAddress the address of the token being swapped
-     * @return outputTokenBalance the balance of the output token after the swap
+     * @return outputTokenReceived the amount of the token received by the swap
      */
-    function _exactInputSwap(ExactInputParams calldata swapParams) private returns (IERC20, uint256) {
+    function _exactInputSwap(ExactInputParams calldata swapParams) private returns (address, uint256) {
         (bytes memory paraswapCalldata, address augustus, IERC20 inputToken, IERC20 outputToken) = abi.decode(
             swapParams.swapData,
             (bytes, address, IERC20, IERC20)
@@ -82,10 +84,10 @@ contract ParaswapExactInDelegateModule is ExactInputDelegateSwapModule {
         _swap(augustus, inputToken, swapParams.inputTokenAmount, paraswapCalldata);
 
         uint256 outputTokenBalance = outputToken.balanceOf(address(this));
-        uint256 amountReceived = outputTokenBalance - balanceBeforeOutputToken;
-        if (amountReceived < swapParams.paymentTokenAmountMin) revert InvalidSwapOutput();
+        uint256 outputTokenReceived = outputTokenBalance - balanceBeforeOutputToken;
+        if (outputTokenReceived < swapParams.paymentTokenAmountMin) revert InvalidSwapOutput();
 
-        return (inputToken, outputTokenBalance);
+        return (address(inputToken), outputTokenReceived);
     }
 
     function _swap(address augustus, IERC20 inputToken, uint256 inputTokenAmount, bytes memory data) internal {

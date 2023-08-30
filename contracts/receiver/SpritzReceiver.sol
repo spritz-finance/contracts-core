@@ -15,6 +15,7 @@ interface IReceiverFactory {
 
 contract SpritzReceiver {
     error NotController();
+    error InvalidDestination();
     error AlreadyInitialized();
     error SwapFailure();
     error InvalidSourceToken();
@@ -37,7 +38,7 @@ contract SpritzReceiver {
     }
 
     function payWithToken(address token, uint256 amount) public onlyController {
-        (address spritzPay, ) = IReceiverFactory(factory).getDestinationAddresses();
+        (address spritzPay, ) = getDestinationAddresses();
         _payWithToken(spritzPay, token, amount);
     }
 
@@ -47,7 +48,7 @@ contract SpritzReceiver {
         uint256 deadline,
         bytes calldata swapData
     ) external onlyController {
-        (address spritzPay, address swapModule) = IReceiverFactory(factory).getDestinationAddresses();
+        (address spritzPay, address swapModule) = getDestinationAddresses();
 
         (address sourceToken, address paymentToken, address weth) = decodeSwapData(swapModule, swapData);
         string memory selector = sourceToken == weth ? "exactInputNativeSwap(bytes)" : "exactInputSwap(bytes)";
@@ -60,9 +61,9 @@ contract SpritzReceiver {
                 swapData: swapData
             });
 
-        uint256 paymentTokenBalance = delegateSwap(swapModule, abi.encodeWithSignature(selector, swapParams));
+        uint256 paymentTokenReceived = delegateSwap(swapModule, abi.encodeWithSignature(selector, swapParams));
 
-        _payWithToken(spritzPay, paymentToken, paymentTokenBalance);
+        _payWithToken(spritzPay, paymentToken, paymentTokenReceived);
     }
 
     function _payWithToken(address spritzPay, address token, uint256 amount) internal {
@@ -77,6 +78,11 @@ contract SpritzReceiver {
         }
     }
 
+    function getDestinationAddresses() internal view returns (address spritzPay, address swapModule) {
+        (spritzPay, swapModule) = IReceiverFactory(factory).getDestinationAddresses();
+        if (spritzPay == address(0) || swapModule == address(0)) revert InvalidDestination();
+    }
+
     function decodeSwapData(
         address swapModule,
         bytes calldata swapData
@@ -89,7 +95,7 @@ contract SpritzReceiver {
         (inputToken, outputToken, weth) = abi.decode(result, (address, address, address));
     }
 
-    function delegateSwap(address target, bytes memory data) internal returns (uint256 paymentTokenBalance) {
+    function delegateSwap(address target, bytes memory data) internal returns (uint256 paymentTokenReceived) {
         (bool success, bytes memory result) = target.delegatecall(data);
         if (!success || result.length == 0) {
             if (result.length == 0) {
@@ -102,7 +108,7 @@ contract SpritzReceiver {
             }
         }
 
-        (paymentTokenBalance) = abi.decode(result, (uint256));
+        (paymentTokenReceived) = abi.decode(result, (uint256));
     }
 
     /**
