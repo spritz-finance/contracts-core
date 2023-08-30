@@ -1,16 +1,18 @@
 import { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types/runtime";
 
+import { getReceiverFactoryContractConfig } from "./receiverFactory";
 import { getSmartPayContractConfig } from "./smartPay";
 import { getSpritzPayContractConfig } from "./spritzPay";
 import { getSwapModuleContractConfig } from "./swapModule";
 
-type ContractConfig = "spritzPay" | "smartPay" | "swapModule";
+type ContractConfig = "spritzPay" | "smartPay" | "swapModule" | "receiverFactory";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const contractConfig: Record<ContractConfig, (env: string, network: string) => any> = {
   spritzPay: getSpritzPayContractConfig,
   smartPay: getSmartPayContractConfig,
   swapModule: getSwapModuleContractConfig,
+  receiverFactory: getReceiverFactoryContractConfig,
 };
 
 export function getContractConfig(

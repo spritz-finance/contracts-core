@@ -1,10 +1,9 @@
 import { BaseProvider } from "@ethersproject/providers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { NATIVE_ZERO_ADDRESS } from "@spritz-finance/sdk";
+import { NATIVE_ZERO_ADDRESS, Network, SpritzPaySDK } from "@spritz-finance/sdk";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 
-import { Network, SpritzPaySDK } from "../../../sdk/dist/index.js";
 import { FORKING_URL } from "../../hardhat.config";
 import { IERC20Upgradeable, SpritzPayV2 } from "../../src/types";
 import {

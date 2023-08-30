@@ -4,6 +4,7 @@ import type { TaskArguments } from "hardhat/types";
 
 import { verifyContract, verifyContractUsingDefender } from "../utils/verify";
 import { getContractConfig } from "./config";
+import { SPRITZPAY_AVALANCHE_ADDRESS, SPRITZPAY_STAGING_AVALANCHE_ADDRESS } from "./constants";
 
 task("upgrade:spritz-pay-v3")
   .addOptionalParam("env", "Production or Staging", "production", types.string)
@@ -30,7 +31,7 @@ task("upgrade:spritz-pay-v3")
   });
 
 task("verify:spritz-pay-v3").setAction(async function (_taskArguments: TaskArguments, hre) {
-  const implementationAddress = "0xC13532f9a2b1fc5b6Eab915aC4f44E3B6e6a2E24";
+  const implementationAddress = "0x6bF2BC4F96B374c0ae92a07fC8B93B2172837202";
   console.log("Implementation contract address", implementationAddress);
 
   await verifyContract(implementationAddress, hre, [], {

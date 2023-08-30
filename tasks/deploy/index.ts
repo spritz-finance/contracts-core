@@ -4,4 +4,5 @@ import "./spritzBridgeV2";
 import "./spritzPay";
 import "./spritzPayV2";
 import "./spritzPayV3";
+import "./spritzReceiver";
 import "./swapModule";

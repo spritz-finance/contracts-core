@@ -2,7 +2,6 @@ import { BaseProvider } from "@ethersproject/providers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { NATIVE_ZERO_ADDRESS, Network, SpritzPaySDK } from "@spritz-finance/sdk";
-import { formatPaymentReference } from "@spritz-finance/sdk/dist/utils/reference";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 
@@ -15,6 +14,7 @@ import {
 } from "../../tasks/deploy/constants";
 import { USDC_WHALE_ADDRESS, WBTC_HOLDER_ADDRESS, WBTC_POLYGON_ADDRESS } from "../helpers/constants";
 import { getERC20Contracts } from "../helpers/helpers";
+import { formatPaymentReference } from "../utils";
 
 const tokenAddress = USDC_POLYGON_ADDRESS;
 const reference = "6304ca0d2f5acf6d69b3c58e";

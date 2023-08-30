@@ -1,10 +1,10 @@
 import { BaseProvider } from "@ethersproject/providers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Network, SpritzPayV3SDK, USDC_POLYGON } from "@spritz-finance/sdk";
 import { expect } from "chai";
 import { utils } from "ethers";
 import { ethers, network } from "hardhat";
 
+import { Network, SpritzPayV3SDK, USDC_POLYGON } from "../../../sdk/dist/spritz-sdk";
 import { IERC20Upgradeable, ParaswapModule, ParaswapModule__factory } from "../../src/types";
 import { LINK_WHALE_POLYGON, WMATIC_POLYGON_ADDRESS } from "../helpers/constants";
 import { getERC20Contracts } from "../helpers/helpers";
@@ -53,11 +53,11 @@ describe("ParaswapModule", function () {
 
   it("correctly performs an exact output swap", async () => {
     const { data } = await sdk.getParaswapQuote(LINK_POLYGON, 120, paraswapModule.address, REFERENCE);
-
     const recipientTokenBalanceBefore = await usdcContract.balanceOf(recipient.address);
 
-    await linkContract.connect(swapper).transfer(paraswapModule.address, data.sourceTokenAmountMax);
+    await admin.sendTransaction({ to: swapper.address, value: utils.parseEther("10") });
 
+    await linkContract.connect(swapper).transfer(paraswapModule.address, data.sourceTokenAmountMax);
     await paraswapModule.connect(swapper).exactOutputSwap({
       to: recipient.address,
       from: swapper.address,
