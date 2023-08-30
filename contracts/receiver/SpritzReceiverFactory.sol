@@ -60,13 +60,7 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      */
     function computeAddress(bytes32 accountReference) external view returns (address) {
         bytes32 salt = getSalt(accountReference);
-
-        bytes memory bytecodeWithConstructorArgs = abi.encodePacked(
-            contractBytecode,
-            abi.encode(controller, spritzPay, address(this), accountReference)
-        );
-
-        return Create2.computeAddress(salt, keccak256(bytecodeWithConstructorArgs));
+        return Create2.computeAddress(salt, keccak256(contractBytecode));
     }
 
     /**
