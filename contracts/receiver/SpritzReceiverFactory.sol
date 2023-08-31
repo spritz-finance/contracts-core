@@ -26,10 +26,9 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
     event ContractDeployed(address deployedAddress);
 
     constructor(address _controller) {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(DEPLOYER_ROLE, msg.sender);
-        _setupRole(DEPLOYER_ROLE, _controller);
         controller = _controller;
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEPLOYER_ROLE, _controller);
     }
 
     /**
@@ -86,6 +85,16 @@ contract SpritzReceiverFactory is AccessControlEnumerable {
      */
     function setSwapModule(address _swapModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
         swapModule = _swapModule;
+    }
+
+    /**
+     * @dev Setup initial contract state
+     */
+    function initialize(address admin, address _spritzPay, address _swapModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(DEFAULT_ADMIN_ROLE, admin);
+        swapModule = _swapModule;
+        spritzPay = _spritzPay;
+        renounceRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /**
