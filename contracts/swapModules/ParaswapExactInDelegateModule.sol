@@ -44,10 +44,12 @@ contract ParaswapExactInDelegateModule is ExactInputDelegateSwapModule {
      * @param swapParams the parameters required to make the swap (See: ExactInputDelegateSwapModule.ExactInputParams)
      * @return outputTokenReceived the amount of the token received by the swap
      */
-    function exactInputNativeSwap(ExactInputParams calldata swapParams) external payable override returns (uint256) {
-        weth.deposit{ value: swapParams.inputTokenAmount }();
+    function exactInputNativeSwap(bytes calldata swapParams) external override returns (uint256) {
+        ExactInputParams memory params = abi.decode(swapParams, (ExactInputParams));
 
-        (address inputTokenAddress, uint256 outputTokenReceived) = _exactInputSwap(swapParams);
+        weth.deposit{ value: params.inputTokenAmount }();
+
+        (address inputTokenAddress, uint256 outputTokenReceived) = _exactInputSwap(params);
 
         if (address(inputTokenAddress) != address(weth)) revert InvalidNativeSwap();
 
@@ -59,10 +61,9 @@ contract ParaswapExactInDelegateModule is ExactInputDelegateSwapModule {
      * @param swapParams the parameters required to make the swap (See: ExactInputDelegateSwapModule.ExactInputParams)
      * @return outputTokenReceived the amount of the token received by the swap
      */
-    function exactInputSwap(
-        ExactInputParams calldata swapParams
-    ) external override returns (uint256 outputTokenReceived) {
-        (, outputTokenReceived) = _exactInputSwap(swapParams);
+    function exactInputSwap(bytes calldata swapParams) external override returns (uint256 outputTokenReceived) {
+        ExactInputParams memory params = abi.decode(swapParams, (ExactInputParams));
+        (, outputTokenReceived) = _exactInputSwap(params);
     }
 
     /**
@@ -71,7 +72,7 @@ contract ParaswapExactInDelegateModule is ExactInputDelegateSwapModule {
      * @return inputTokenAddress the address of the token being swapped
      * @return outputTokenReceived the amount of the token received by the swap
      */
-    function _exactInputSwap(ExactInputParams calldata swapParams) private returns (address, uint256) {
+    function _exactInputSwap(ExactInputParams memory swapParams) private returns (address, uint256) {
         (bytes memory paraswapCalldata, address augustus, IERC20 inputToken, IERC20 outputToken) = abi.decode(
             swapParams.swapData,
             (bytes, address, IERC20, IERC20)

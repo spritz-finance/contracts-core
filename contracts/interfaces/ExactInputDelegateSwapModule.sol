@@ -11,9 +11,9 @@ interface ExactInputDelegateSwapModule {
         bytes swapData;
     }
 
-    function exactInputNativeSwap(ExactInputParams calldata swapParams) external payable returns (uint256);
+    function exactInputNativeSwap(bytes calldata swapParams) external returns (uint256);
 
-    function exactInputSwap(ExactInputParams calldata swapParams) external returns (uint256);
+    function exactInputSwap(bytes calldata swapParams) external returns (uint256);
 
     function decodeSwapData(bytes calldata swapData) external returns (address, address, address);
 }

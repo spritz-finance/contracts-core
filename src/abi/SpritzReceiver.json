@@ -1,5 +1,6 @@
 [
   "constructor(address,bytes32) payable",
+  "error DecodeFailure()",
   "error FailedSweep()",
   "error InvalidDestination()",
   "error NotController()",

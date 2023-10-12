@@ -17,6 +17,7 @@ contract SpritzReceiver {
     error NotController();
     error InvalidDestination();
     error SwapFailure();
+    error DecodeFailure();
     error FailedSweep();
 
     bytes32 private immutable accountReference;
@@ -48,7 +49,16 @@ contract SpritzReceiver {
         (address spritzPay, address swapModule) = getDestinationAddresses();
 
         (address sourceToken, address paymentToken, address weth) = decodeSwapData(swapModule, swapData);
-        string memory selector = sourceToken == weth ? "exactInputNativeSwap(bytes)" : "exactInputSwap(bytes)";
+
+        string memory selector;
+
+        if (sourceToken == weth) {
+            selector = address(this).balance >= sourceTokenAmount
+                ? "exactInputNativeSwap(bytes)"
+                : "exactInputSwap(bytes)";
+        } else {
+            selector = "exactInputSwap(bytes)";
+        }
 
         ExactInputDelegateSwapModule.ExactInputParams memory swapParams = ExactInputDelegateSwapModule
             .ExactInputParams({
@@ -58,7 +68,10 @@ contract SpritzReceiver {
                 swapData: swapData
             });
 
-        uint256 paymentTokenReceived = delegateSwap(swapModule, abi.encodeWithSignature(selector, swapParams));
+        uint256 paymentTokenReceived = delegateSwap(
+            swapModule,
+            abi.encodeWithSignature(selector, abi.encode(swapParams))
+        );
 
         _payWithToken(spritzPay, paymentToken, paymentTokenReceived);
     }
@@ -87,7 +100,7 @@ contract SpritzReceiver {
         bytes memory data = abi.encodeWithSelector(ExactInputDelegateSwapModule.decodeSwapData.selector, swapData);
 
         (bool success, bytes memory result) = swapModule.staticcall(data);
-        if (!success) revert SwapFailure();
+        if (!success) revert DecodeFailure();
 
         (inputToken, outputToken, weth) = abi.decode(result, (address, address, address));
     }

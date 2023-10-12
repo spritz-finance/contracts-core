@@ -72,7 +72,7 @@ task("deploy:verify-swap-module")
     const config = getContractConfig("receiverSwapModule", _taskArguments, hre);
 
     await hre.run(`verify:verify`, {
-      address: "0x857Ff61fB5648824fCC5c487FB6C959cc218bfdF",
+      address: "0x82b2418235DbCBF59D7C25eB291AA31eDAd2A5BB",
       contract: "contracts/swapModules/ParaswapExactInDelegateModule.sol:ParaswapExactInDelegateModule",
       constructorArguments: [...config.args],
     });
