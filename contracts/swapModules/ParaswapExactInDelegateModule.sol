@@ -8,7 +8,7 @@ import "../interfaces/IWETH9.sol";
 import { IParaSwapAugustusRegistry } from "../interfaces/IParaSwapAugustusRegistry.sol";
 import { IParaSwapAugustus } from "../interfaces/IParaSwapAugustus.sol";
 
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.21;
 
 contract ParaswapExactInDelegateModule is ExactInputDelegateSwapModule {
     using SafeERC20 for IERC20;

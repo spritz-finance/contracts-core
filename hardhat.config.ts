@@ -147,7 +147,32 @@ const config: HardhatUserConfig = {
     tests: "./test",
   },
   solidity: {
-    version: "0.8.7",
+    version: "0.8.21",
+    compilers: [
+      {
+        version: "0.8.7",
+      },
+      {
+        version: "0.8.21",
+      },
+    ],
+    overrides: {
+      "contracts/receiver/SpritzReceiver.sol": {
+        version: "0.8.21",
+        settings: {},
+      },
+      "contracts/receiver/SpritzReceiverFactory.sol": {
+        version: "0.8.21",
+        settings: {},
+      },
+      "contracts/interfaces/ExactInputDelegateSwapModule.sol": {
+        version: "0.8.21",
+        settings: {},
+      },
+      "contracts/swapModules/ParaswapExactInDelegateModule.sol": {
+        version: "0.8.21",
+      },
+    },
     settings: {
       metadata: {
         bytecodeHash: "none",
