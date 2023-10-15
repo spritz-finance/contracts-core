@@ -102,4 +102,4 @@ export const getReceiverSwapModuleConfig = (env: string, network: string) => {
 //  optimism: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  arbitrum: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  avalanche: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
-//  base: ,
+//  base: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
