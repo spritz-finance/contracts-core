@@ -2,17 +2,20 @@ import { raise } from "../../utils/raise";
 import {
   ADMIN_ARBITRUM,
   ADMIN_AVALANCHE,
+  ADMIN_BASE,
   ADMIN_BSC,
   ADMIN_MAINNET,
   ADMIN_OPTIMISM,
   ADMIN_POLYGON,
   AUGUSTUS_REGISTRY_ARBITRUM,
   AUGUSTUS_REGISTRY_AVALANCHE,
+  AUGUSTUS_REGISTRY_BASE,
   AUGUSTUS_REGISTRY_BSC,
   AUGUSTUS_REGISTRY_OPTIMISM,
   AUGUSTUS_REGISTRY_POLYGON,
   TEAM_WALLET_ARBITRUM,
   TEAM_WALLET_AVALANCHE,
+  TEAM_WALLET_BASE,
   TEAM_WALLET_BSC,
   TEAM_WALLET_MAINNET,
   TEAM_WALLET_OPTIMISM,
@@ -21,6 +24,7 @@ import {
   WAVAX_AVALANCHE_ADDRESS,
   WBNB_BSC_ADDRESS,
   WETH_ARBITRUM_ADDRESS,
+  WETH_BASE_ADDRESS,
   WETH_MAINNET_ADDRESS,
   WETH_OPTIMISM_ADDRESS,
   WMATIC_POLYGON_ADDRESS,
@@ -41,6 +45,7 @@ const SWAP_MODULES: Record<string, string | null> = {
   optimism: "0xDdbe856E2f67D33081E900391484cD660b21c9b5",
   arbitrum: "0x465BdbF43A27D5eA66DB9dfcEabEbfe0bdb26609",
   avalanche: "0xf100eA9030c807D1B0888eaBD93666b877426906",
+  base: "0x0fe08D911246566fdFD4afE0181a21ab810EE1C2",
 };
 
 const ADMINS_FOR_ENV: Record<string, Record<string, string>> = {
@@ -51,6 +56,7 @@ const ADMINS_FOR_ENV: Record<string, Record<string, string>> = {
     optimism: TEAM_WALLET_OPTIMISM,
     arbitrum: TEAM_WALLET_ARBITRUM,
     avalanche: TEAM_WALLET_AVALANCHE,
+    base: TEAM_WALLET_BASE,
   },
   production: {
     "polygon-mainnet": ADMIN_POLYGON,
@@ -59,6 +65,7 @@ const ADMINS_FOR_ENV: Record<string, Record<string, string>> = {
     optimism: ADMIN_OPTIMISM,
     arbitrum: ADMIN_ARBITRUM,
     avalanche: ADMIN_AVALANCHE,
+    base: ADMIN_BASE,
   },
 };
 
@@ -79,6 +86,7 @@ const swapModuleContractConfig: Record<string, [string, string]> = {
   optimism: [AUGUSTUS_REGISTRY_OPTIMISM, WETH_OPTIMISM_ADDRESS],
   arbitrum: [AUGUSTUS_REGISTRY_ARBITRUM, WETH_ARBITRUM_ADDRESS],
   avalanche: [AUGUSTUS_REGISTRY_AVALANCHE, WAVAX_AVALANCHE_ADDRESS],
+  base: [AUGUSTUS_REGISTRY_BASE, WETH_BASE_ADDRESS],
 };
 
 export const getReceiverSwapModuleConfig = (env: string, network: string) => {

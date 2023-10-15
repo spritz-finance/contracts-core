@@ -112,6 +112,16 @@ const config: HardhatUserConfig = {
       ropsten: process.env.ETHERSCAN_API_KEY,
       base: process.env.BASESCAN_API_KEY,
     } as Record<string, string>,
+    customChains: [
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org",
+        },
+      },
+    ],
   },
   gasReporter: {
     currency: "USD",
