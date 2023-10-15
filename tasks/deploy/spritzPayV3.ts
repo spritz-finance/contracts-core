@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getImplementationAddress } from "@openzeppelin/upgrades-core";
 import { task, types } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
-import { verifyContract, verifyContractUsingDefender } from "../utils/verify";
+import { verifyContract, verifyContractUsingDefender, verifyProxyContract } from "../utils/verify";
 import { getContractConfig } from "./config";
-import { SPRITZPAY_AVALANCHE_ADDRESS, SPRITZPAY_STAGING_AVALANCHE_ADDRESS } from "./constants";
 
 task("upgrade:spritz-pay-v3")
   .addOptionalParam("env", "Production or Staging", "production", types.string)
@@ -38,3 +38,34 @@ task("verify:spritz-pay-v3").setAction(async function (_taskArguments: TaskArgum
     contract: "contracts/SpritzPayV3.sol:SpritzPayV3",
   });
 });
+
+task("deploy:spritz-pay-v3")
+  .addOptionalParam("env", "Production or Staging", "production", types.string)
+  .setAction(async function (_taskArguments: TaskArguments, hre) {
+    const config = getContractConfig("spritzPay", _taskArguments, hre);
+
+    const { args } = config;
+
+    console.log(`Deploying Spritz ${_taskArguments.env} contract to ${hre.network.name} with args`, { args });
+
+    const spritzPayFactory = await hre.ethers.getContractFactory("SpritzPayV3");
+
+    const proxy = await hre.upgrades.deployProxy(spritzPayFactory, args, {
+      timeout: 0,
+    });
+    await proxy.deployed();
+
+    console.log("Transferring proxyadmin ownership to ", args[0]);
+    await hre.upgrades.admin.transferProxyAdminOwnership(args[0]);
+
+    console.log("Proxy contract address: ", proxy.address);
+
+    const implementationAddress = await getImplementationAddress(hre.ethers.provider, proxy.address);
+    console.log("Implementation contract address", implementationAddress);
+
+    const implementationContract = await hre.ethers.getContractAt("SpritzPayV3", implementationAddress);
+
+    await verifyProxyContract(proxy, implementationContract, hre, [], {
+      contract: "contracts/SpritzPayV3.sol:SpritzPayV3",
+    });
+  });
