@@ -35,12 +35,12 @@ const CONTROLLERS: Record<string, string> = {
 const DUMMY_SWAP_MODULE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const SWAP_MODULES: Record<string, string | null> = {
-  "polygon-mainnet": "0x857Ff61fB5648824fCC5c487FB6C959cc218bfdF", // not verified
-  bsc: "0x1B5Bd2e617c3B7e185b5f2283181FB2a98132B1D",
+  "polygon-mainnet": "0x6486b931830a829BB3C88d2F968461c4Cc86E2f8",
+  bsc: "0x555542c81eD4B13980BaecEB8B4e5330BF1cB35f",
   mainnet: DUMMY_SWAP_MODULE,
-  optimism: "0x0CccE22deBa75D24202D8244Dc99D8d3c100a4C1",
-  arbitrum: "0xd2DA8E5F6DA7d3aF15DBf937a259ea056258B5F9",
-  avalanche: "0x420DFDb630aF1EBeEe3c007eD056c9F58bE3117b",
+  optimism: "0xDdbe856E2f67D33081E900391484cD660b21c9b5",
+  arbitrum: "0x465BdbF43A27D5eA66DB9dfcEabEbfe0bdb26609",
+  avalanche: "0xf100eA9030c807D1B0888eaBD93666b877426906",
 };
 
 const ADMINS_FOR_ENV: Record<string, Record<string, string>> = {
@@ -86,3 +86,12 @@ export const getReceiverSwapModuleConfig = (env: string, network: string) => {
     args: swapModuleContractConfig[network],
   };
 };
+
+// Factory addresses
+// "polygon-mainnet": 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  bsc: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  mainnet: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  optimism: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  arbitrum: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  avalanche: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  base: ,

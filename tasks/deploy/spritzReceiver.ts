@@ -5,8 +5,6 @@ import type { TaskArguments } from "hardhat/types";
 import { ParaswapExactInDelegateModule__factory, SpritzReceiverFactory__factory } from "../../src/types";
 import { getContractConfig } from "./config";
 
-// 0xf7BD1DC091995783D66558e2eF343883E825EceD
-
 task("deploy:SpritzReceiverFactory")
   .addOptionalParam("env", "Production or Staging", "production", types.string)
   .setAction(async function (_taskArguments: TaskArguments, hre) {
@@ -38,7 +36,7 @@ task("deploy:verify-receiver")
   .setAction(async function (_taskArguments: TaskArguments, hre) {
     const config = getContractConfig("receiverFactory", _taskArguments, hre);
     await hre.run(`verify:verify`, {
-      address: "0xf7BD1DC091995783D66558e2eF343883E825EceD",
+      address: "0x5dF8c7C0725CDB6268F4503de880c38C45F69C61",
       contract: "contracts/receiver/SpritzReceiverFactory.sol:SpritzReceiverFactory",
       constructorArguments: [...config.args],
     });
@@ -72,7 +70,7 @@ task("deploy:verify-swap-module")
     const config = getContractConfig("receiverSwapModule", _taskArguments, hre);
 
     await hre.run(`verify:verify`, {
-      address: "0x82b2418235DbCBF59D7C25eB291AA31eDAd2A5BB",
+      address: "0x6486b931830a829BB3C88d2F968461c4Cc86E2f8",
       contract: "contracts/swapModules/ParaswapExactInDelegateModule.sol:ParaswapExactInDelegateModule",
       constructorArguments: [...config.args],
     });

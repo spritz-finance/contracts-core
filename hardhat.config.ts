@@ -33,6 +33,7 @@ const alchemyArbitrumKey: string | undefined = process.env.ALCHEMY_ARBITRUM_KEY;
 const alchemyMainnetKey: string | undefined = process.env.ALCHEMY_MAINNET_KEY;
 const alchemyPolygonMumbaiKey: string | undefined = process.env.ALCHEMY_POLYGON_MAINNET_KEY;
 const quicknodeBscKey: string | undefined = process.env.QUICKNODE_BSC_KEY;
+const alchemyBaseKey: string | undefined = process.env.ALCHEMY_BASE_KEY;
 
 export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
 // export const FORKING_URL = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
@@ -49,6 +50,7 @@ const chainIds = {
   "polygon-mainnet": 137,
   "polygon-mumbai": 80001,
   rinkeby: 4,
+  base: 8453,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -79,6 +81,9 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
     case "polygon-mumbai":
       jsonRpcUrl = `https://polygon-mumbai.g.alchemy.com/v2/${alchemyPolygonMumbaiKey}`;
       break;
+    case "base":
+      jsonRpcUrl = `https://base-mainnet.g.alchemy.com/v2/${alchemyBaseKey}`;
+      break;
     case "ropsten":
       jsonRpcUrl = `https://ropsten.infura.io/v3/148c4ba669124e409d415eef42e2a750`;
       break;
@@ -105,6 +110,7 @@ const config: HardhatUserConfig = {
       polygonMumbai: process.env.POLYGONSCAN_API_KEY,
       rinkeby: process.env.ETHERSCAN_API_KEY,
       ropsten: process.env.ETHERSCAN_API_KEY,
+      base: process.env.BASESCAN_API_KEY,
     } as Record<string, string>,
   },
   gasReporter: {
@@ -139,6 +145,7 @@ const config: HardhatUserConfig = {
     "polygon-mumbai": getChainConfig("polygon-mumbai"),
     rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
+    base: getChainConfig("base"),
   },
   paths: {
     artifacts: "./artifacts",
