@@ -103,3 +103,6 @@ export const getReceiverSwapModuleConfig = (env: string, network: string) => {
 //  arbitrum: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  avalanche: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  base: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+
+// Staging factory:
+// 0x7b51c03F597C06CB9D5BcA7d8184Fac63609943b
