@@ -1,0 +1,8 @@
+[
+  "error Create2EmptyBytecode()",
+  "error Create2FailedDeployment()",
+  "error Create2InsufficientBalance(uint256,uint256)",
+  "error InvalidSalt()",
+  "function computeAddress(bytes32,bytes) view returns (address)",
+  "function deploy(bytes32,bytes) payable"
+]

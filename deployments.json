@@ -1,0 +1,12 @@
+{
+  "contracts": [
+    {
+      "name": "ContractA",
+      "compiler_version": "0.8.21",
+      "optimizer_runs": 100000,
+      "initialization_code": "0x123456...",
+      "salt": "0xabcdef...",
+      "deployer": ""
+    }
+  ]
+}

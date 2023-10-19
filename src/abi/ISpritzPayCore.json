@@ -1,0 +1,4 @@
+[
+  "event Payment(address,address indexed,address indexed,uint256,address,uint256,bytes32 indexed)",
+  "function pay(address,address,uint256,address,uint256,bytes32)"
+]

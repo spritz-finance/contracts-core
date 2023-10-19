@@ -1,3 +1,4 @@
+import "./protocol/contractFactory";
 import "./smartPay";
 import "./spritzBridge";
 import "./spritzBridgeV2";

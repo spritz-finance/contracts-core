@@ -189,6 +189,9 @@ const config: HardhatUserConfig = {
       "contracts/swapModules/ParaswapExactInDelegateModule.sol": {
         version: "0.8.21",
       },
+      "contracts/protocol/factories/SpritzContractFactory.sol": {
+        version: "0.8.21",
+      },
     },
     settings: {
       metadata: {
@@ -198,6 +201,7 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 100000,
       },
+      evmVersion: "paris",
     },
   },
   mocha: {

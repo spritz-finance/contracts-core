@@ -129,5 +129,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "openzeppelin-5": "npm:@openzeppelin/contracts@5.0.0"
+  }
 }

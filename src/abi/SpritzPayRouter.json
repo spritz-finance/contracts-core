@@ -1,0 +1,10 @@
+[
+  "constructor(address) payable",
+  "error AddressEmptyCode(address)",
+  "error AddressInsufficientBalance(address)",
+  "error FailedInnerCall()",
+  "error SafeERC20FailedOperation(address)",
+  "function getTokenTransferProxy() view returns (address)",
+  "function payWithToken(address,uint256,bytes32)",
+  "function spritzPay() view returns (address)"
+]

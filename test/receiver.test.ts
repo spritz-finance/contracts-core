@@ -97,7 +97,7 @@ const setupFactoryFixture = async () => {
   };
 };
 
-describe.only("SpritzReceiver", function () {
+describe("SpritzReceiver", function () {
   let controller: SignerWithAddress;
   let deployer: SignerWithAddress;
   let spritzPay: FakeContract<SpritzPayV3>;
