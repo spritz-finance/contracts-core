@@ -17,7 +17,7 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const swapModuleContractConfig: Record<string, [string, string]> = {
-  "polygon-mainnet": [AUGUSTUS_REGISTRY_POLYGON, WMATIC_POLYGON_ADDRESS],
+  polygon: [AUGUSTUS_REGISTRY_POLYGON, WMATIC_POLYGON_ADDRESS],
   bsc: [AUGUSTUS_REGISTRY_BSC, WBNB_BSC_ADDRESS],
   mainnet: [UNISWAP_V3_ROUTER_ADDRESS, WETH_MAINNET_ADDRESS],
   optimism: [AUGUSTUS_REGISTRY_OPTIMISM, WETH_OPTIMISM_ADDRESS],

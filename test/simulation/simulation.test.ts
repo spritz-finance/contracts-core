@@ -11,7 +11,7 @@ import {
 } from "../../tasks/deploy/constants";
 
 const simulationConfig = {
-  "polygon-mainnet": {
+  polygon: {
     paymentTokenAddress: USDC_POLYGON_ADDRESS,
     v2RouterAddress: QUICKSWAP_ROUTER_POLYGON_ADDRESS,
     nativeAddress: WMATIC_POLYGON_ADDRESS,

@@ -31,7 +31,7 @@ const setupFactoryFixture = async () => {
   };
 };
 
-describe.only("SpritzContractFactory", function () {
+describe("SpritzContractFactory", function () {
   let controller: SignerWithAddress;
   let deployer: SignerWithAddress;
   let factory: SpritzContractFactory;

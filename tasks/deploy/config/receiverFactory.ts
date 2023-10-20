@@ -39,7 +39,7 @@ const CONTROLLERS: Record<string, string> = {
 const DUMMY_SWAP_MODULE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const SWAP_MODULES: Record<string, string | null> = {
-  "polygon-mainnet": "0x6486b931830a829BB3C88d2F968461c4Cc86E2f8",
+  polygon: "0x6486b931830a829BB3C88d2F968461c4Cc86E2f8",
   bsc: "0x555542c81eD4B13980BaecEB8B4e5330BF1cB35f",
   mainnet: DUMMY_SWAP_MODULE,
   optimism: "0xDdbe856E2f67D33081E900391484cD660b21c9b5",
@@ -50,7 +50,7 @@ const SWAP_MODULES: Record<string, string | null> = {
 
 const ADMINS_FOR_ENV: Record<string, Record<string, string>> = {
   staging: {
-    "polygon-mainnet": TEAM_WALLET_POLYGON,
+    polygon: TEAM_WALLET_POLYGON,
     bsc: TEAM_WALLET_BSC,
     mainnet: TEAM_WALLET_MAINNET,
     optimism: TEAM_WALLET_OPTIMISM,
@@ -59,7 +59,7 @@ const ADMINS_FOR_ENV: Record<string, Record<string, string>> = {
     base: TEAM_WALLET_BASE,
   },
   production: {
-    "polygon-mainnet": ADMIN_POLYGON,
+    polygon: ADMIN_POLYGON,
     bsc: ADMIN_BSC,
     mainnet: ADMIN_MAINNET,
     optimism: ADMIN_OPTIMISM,
@@ -80,7 +80,7 @@ export const getReceiverFactoryContractConfig = (env: string, network: string) =
 };
 
 const swapModuleContractConfig: Record<string, [string, string]> = {
-  "polygon-mainnet": [AUGUSTUS_REGISTRY_POLYGON, WMATIC_POLYGON_ADDRESS],
+  polygon: [AUGUSTUS_REGISTRY_POLYGON, WMATIC_POLYGON_ADDRESS],
   bsc: [AUGUSTUS_REGISTRY_BSC, WBNB_BSC_ADDRESS],
   mainnet: [UNISWAP_V3_ROUTER_ADDRESS, WETH_MAINNET_ADDRESS],
   optimism: [AUGUSTUS_REGISTRY_OPTIMISM, WETH_OPTIMISM_ADDRESS],
@@ -96,7 +96,7 @@ export const getReceiverSwapModuleConfig = (env: string, network: string) => {
 };
 
 // Factory addresses
-// "polygon-mainnet": 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
+//  polygon: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  bsc: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  mainnet: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,
 //  optimism: 0x5dF8c7C0725CDB6268F4503de880c38C45F69C61,

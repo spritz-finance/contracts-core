@@ -37,17 +37,17 @@ const alchemyBaseKey: string | undefined = process.env.ALCHEMY_BASE_KEY;
 
 export const FORKING_URL = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
 // export const FORKING_URL = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
-export const FORKING_CHAIN = "polygon-mainnet";
+export const FORKING_CHAIN = "polygon";
 
 const chainIds = {
-  "arbitrum-mainnet": 42161,
+  arbitrum: 42161,
   avalanche: 43114,
   bsc: 56,
   hardhat: 31337,
   mainnet: 1,
   ropsten: 3,
   optimism: 10,
-  "polygon-mainnet": 137,
+  polygon: 137,
   "polygon-mumbai": 80001,
   rinkeby: 4,
   base: 8453,
@@ -66,13 +66,13 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
     case "bsc":
       jsonRpcUrl = `https://alien-multi-field.bsc.quiknode.pro/${quicknodeBscKey}/`;
       break;
-    case "polygon-mainnet":
+    case "polygon":
       jsonRpcUrl = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyPolygonMainnetKey}`;
       break;
     case "optimism":
       jsonRpcUrl = `https://opt-mainnet.g.alchemy.com/v2/${alchemyOptimismKey}`;
       break;
-    case "arbitrum-mainnet":
+    case "arbitrum":
       jsonRpcUrl = `https://arb-mainnet.g.alchemy.com/v2/${alchemyArbitrumKey}`;
       break;
     case "rinkeby":
@@ -146,12 +146,12 @@ const config: HardhatUserConfig = {
       chainId: chainIds[FORKING_CHAIN],
       blockGasLimit: 150_000_000,
     },
-    arbitrum: getChainConfig("arbitrum-mainnet"),
+    arbitrum: getChainConfig("arbitrum"),
     avalanche: getChainConfig("avalanche"),
     bsc: getChainConfig("bsc"),
     mainnet: getChainConfig("mainnet"),
     optimism: getChainConfig("optimism"),
-    "polygon-mainnet": getChainConfig("polygon-mainnet"),
+    polygon: getChainConfig("polygon"),
     "polygon-mumbai": getChainConfig("polygon-mumbai"),
     rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
