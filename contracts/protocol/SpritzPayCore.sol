@@ -16,11 +16,6 @@ contract SpritzPayCore is AccessControlEnumerable {
     using SafeERC20 for IERC20;
 
     /**
-     * @notice Thrown when setting one of our stored addresses to zero
-     */
-    error ZeroAddress();
-
-    /**
      * @notice Thrown when sweeping the contract fails
      */
     error FailedSweep();
@@ -28,7 +23,7 @@ contract SpritzPayCore is AccessControlEnumerable {
     /**
      * @notice Thrown when paying with unrecognized token
      */
-    error NonAcceptedToken(address token);
+    error TokenNotAccepted(address token);
 
     /**
      * @dev Emitted when the payment recipient has been changed
@@ -53,21 +48,22 @@ contract SpritzPayCore is AccessControlEnumerable {
 
     address public paymentRecipient;
 
-    /**
-     * @dev Prevent payments being made with unapproved tokens
-     * @param paymentToken address The address of the payment token
-     */
-    modifier onlyAcceptedToken(address paymentToken) {
-        if (!_acceptedPaymentTokens.contains(paymentToken)) {
-            revert NonAcceptedToken(paymentToken);
-        }
-        _;
-    }
-
     constructor(address admin) payable {
-        grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
+    /**
+     * @notice Core payment infrastructure - transfers tokens to payment recipient
+     * and emits event to be processed offchain.
+     * @dev requires that tokens be send to SpritzPayCore before calling the
+     * pay method.
+     * @param caller Address of the payment sender
+     * @param paymentToken Address of the target payment token
+     * @param paymentAmount Payment amount, denominated in target payment token
+     * @param sourceToken Address of the original source token used for payment, as a reference
+     * @param sourceTokenSpent The amount of the original source token
+     * @param paymentReference Arbitrary reference ID of the related payment
+     */
     function pay(
         address caller,
         address paymentToken,
@@ -75,8 +71,11 @@ contract SpritzPayCore is AccessControlEnumerable {
         address sourceToken,
         uint256 sourceTokenSpent,
         bytes32 paymentReference
-    ) external onlyAcceptedToken(paymentToken) {
+    ) external {
+        if (!_acceptedPaymentTokens.contains(paymentToken)) revert TokenNotAccepted(paymentToken);
+
         IERC20(paymentToken).safeTransfer(paymentRecipient, paymentAmount);
+
         emit Payment(
             paymentRecipient,
             caller,
@@ -108,7 +107,6 @@ contract SpritzPayCore is AccessControlEnumerable {
      * @dev Sets a new address for the payment recipient
      */
     function setPaymentRecipient(address newPaymentRecipient) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newPaymentRecipient == address(0)) revert ZeroAddress();
         paymentRecipient = newPaymentRecipient;
         emit PaymentRecipientChanged(paymentRecipient, msg.sender);
     }

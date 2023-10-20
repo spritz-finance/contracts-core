@@ -10,7 +10,7 @@ import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
-// import "hardhat-storage-layout";
+import "hardhat-storage-layout";
 import "hardhat-tracer";
 import { HardhatUserConfig } from "hardhat/config";
 import { HttpNetworkConfig, NetworkUserConfig } from "hardhat/types";
@@ -131,10 +131,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      forking: {
-        url: (getChainConfig(FORKING_CHAIN) as HttpNetworkConfig).url,
-        // blockNumber: 16132246,
-      },
+      // forking: {
+      //   url: (getChainConfig(FORKING_CHAIN) as HttpNetworkConfig).url,
+      //   blockNumber: 48945029,
+      // },
       accounts: {
         mnemonic,
       },
