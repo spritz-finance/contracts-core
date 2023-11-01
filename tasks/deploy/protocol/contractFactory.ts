@@ -4,6 +4,8 @@ import type { TaskArguments } from "hardhat/types";
 
 import { verifyContract } from "../../utils/verify";
 
+// export FACTORY="0x0a9190fb699b6ec18fea4dc2791548aa24e12f36"; export CALLER="0x0f0f7b0a7287aea91d5f1b3125951dbb3d4f692e"; export INIT_CODE_HASH="0x654d5810a68980ed0830d5d5e1fbcec180c8a689a5997e8de50aa6e41c96e00b"; export LEADING=5; export TOTAL=7; cargo run --release $FACTORY $CALLER $INIT_CODE_HASH 0 $LEADING $TOTAL
+
 // optimizer: 100_000 runs
 // solidity: version 0.8.21
 // evm_version: paris

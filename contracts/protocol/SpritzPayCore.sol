@@ -21,6 +21,11 @@ contract SpritzPayCore is AccessControlEnumerable {
     error FailedSweep();
 
     /**
+     * @notice Thrown when calling the initializer after already being initialized
+     */
+    error Initialized();
+
+    /**
      * @notice Thrown when paying with unrecognized token
      */
     error TokenNotAccepted(address token);
@@ -46,9 +51,15 @@ contract SpritzPayCore is AccessControlEnumerable {
     /// @notice List of all accepted payment tokens
     EnumerableSet.AddressSet internal _acceptedPaymentTokens;
 
+    bool private _initialized;
+
     address public paymentRecipient;
 
-    constructor(address admin) payable {
+    constructor() payable {}
+
+    function initialize(address admin) external {
+        if (_initialized) revert Initialized();
+        _initialized = true;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
